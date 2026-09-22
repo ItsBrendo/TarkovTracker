@@ -140,6 +140,23 @@
       th {
         color: var(--muted);
       }
+
+      .table-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        color: var(--muted);
+      }
+
+      .page-size-select {
+        background: #101c26;
+        color: var(--text);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
     </style>
   </head>
   <body>
@@ -178,6 +195,16 @@
           </thead>
           <tbody id="items"></tbody>
         </table>
+
+        <div class="table-footer">
+          <label for="pageSize">Items per page</label>
+          <select id="pageSize" class="page-size-select">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -189,14 +216,22 @@
       const errorEl = document.getElementById('error');
       const itemsEl = document.getElementById('items');
       const loadButton = document.getElementById('loadButton');
+      const pageSizeEl = document.getElementById('pageSize');
       let allItems = [];
+      let currentPage = 1;
+      let pageSize = Number(pageSizeEl.value);
 
       function renderItems(items) {
         const filterText = itemFilterEl.value.trim();
         const filtered = items.filter((item) => TarkovTracker.matchesFilter(item, filterText));
+        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        currentPage = Math.min(currentPage, totalPages);
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const visibleItems = filtered.slice(startIndex, startIndex + pageSize);
 
         itemsEl.innerHTML = '';
-        filtered.forEach((item) => {
+        visibleItems.forEach((item) => {
           const row = document.createElement('tr');
           row.innerHTML = `
             <td>${item.name || 'Unknown item'}</td>
@@ -208,7 +243,7 @@
         });
 
         resultCountEl.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
-        statusEl.textContent = `Showing ${filtered.length} of ${items.length} items.`;
+        statusEl.textContent = `Showing ${visibleItems.length} of ${filtered.length} matching items (page ${currentPage} of ${totalPages}).`;
       }
 
       async function loadItems() {
@@ -228,7 +263,17 @@
         }
       }
 
-      itemFilterEl.addEventListener('input', () => renderItems(allItems));
+      itemFilterEl.addEventListener('input', () => {
+        currentPage = 1;
+        renderItems(allItems);
+      });
+
+      pageSizeEl.addEventListener('change', () => {
+        pageSize = Number(pageSizeEl.value);
+        currentPage = 1;
+        renderItems(allItems);
+      });
+
       loadButton.addEventListener('click', loadItems);
       loadItems();
     </script>
