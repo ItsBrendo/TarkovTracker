@@ -3,12 +3,12 @@ const FALLBACK_ITEMS = [
   { name: 'Roubles', basePrice: 100, avg24hPrice: 100, lastLowPrice: 100 },
   { name: 'Salewa', basePrice: 1100, avg24hPrice: 1180, lastLowPrice: 1080 },
   { name: 'Gold Skull', basePrice: 28500, avg24hPrice: 29200, lastLowPrice: 27600 },
-  { name: 'Can of Dr Pepper', basePrice: 3200, avg24hPrice: 3400, lastLowPrice: 3100 },
   { name: 'M4A1', basePrice: 229000, avg24hPrice: 236500, lastLowPrice: 221000 },
   { name: 'AK-74M', basePrice: 212500, avg24hPrice: 218000, lastLowPrice: 204000 },
   { name: 'Intel', basePrice: 12850, avg24hPrice: 13500, lastLowPrice: 12000 },
   { name: 'Battery', basePrice: 7800, avg24hPrice: 8200, lastLowPrice: 7600 },
-  { name: 'Ammo Case', basePrice: 14200, avg24hPrice: 14950, lastLowPrice: 13800 }
+  { name: 'Ammo Case', basePrice: 14200, avg24hPrice: 14950, lastLowPrice: 13800 },
+  { name: 'Shturman', basePrice: 42500, avg24hPrice: 44200, lastLowPrice: 40600 }
 ];
 
 addEventListener('fetch', event => {
@@ -22,6 +22,17 @@ function jsonHeaders() {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With'
   };
+}
+
+function fallbackResponse(message = 'The live Tarkov API is unavailable right now.') {
+  return new Response(JSON.stringify({
+    data: { items: FALLBACK_ITEMS },
+    fallback: true,
+    error: message
+  }), {
+    status: 200,
+    headers: jsonHeaders()
+  });
 }
 
 async function handleRequest(request) {
@@ -82,12 +93,7 @@ async function handleRequest(request) {
       const text = await response.text();
 
       if (response.status === 403 || response.status === 429 || response.status >= 500) {
-        return new Response(JSON.stringify({
-          data: { items: FALLBACK_ITEMS }
-        }), {
-          status: 200,
-          headers: jsonHeaders()
-        });
+        return fallbackResponse('The live Tarkov API is unavailable right now.');
       }
 
       return new Response(text, {
@@ -95,12 +101,7 @@ async function handleRequest(request) {
         headers: jsonHeaders()
       });
     } catch (error) {
-      return new Response(JSON.stringify({
-        data: { items: FALLBACK_ITEMS }
-      }), {
-        status: 200,
-        headers: jsonHeaders()
-      });
+      return fallbackResponse('The live Tarkov API is unavailable right now.');
     }
   }
 
@@ -119,12 +120,7 @@ async function handleRequest(request) {
       const text = await response.text();
 
       if (response.status === 403 || response.status === 429 || response.status >= 500) {
-        return new Response(JSON.stringify({
-          data: { items: FALLBACK_ITEMS }
-        }), {
-          status: 200,
-          headers: jsonHeaders()
-        });
+        return fallbackResponse('The live Tarkov API is unavailable right now.');
       }
 
       return new Response(text, {
@@ -132,12 +128,7 @@ async function handleRequest(request) {
         headers: jsonHeaders()
       });
     } catch (error) {
-      return new Response(JSON.stringify({
-        data: { items: FALLBACK_ITEMS }
-      }), {
-        status: 200,
-        headers: jsonHeaders()
-      });
+      return fallbackResponse('The live Tarkov API is unavailable right now.');
     }
   }
 }

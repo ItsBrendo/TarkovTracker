@@ -258,7 +258,8 @@
           console.error(error);
           allItems = TarkovTracker.fallbackItems;
           renderItems(allItems);
-          errorEl.textContent = 'The live Tarkov API is blocked right now, so this page is showing cached fallback data.';
+          const reason = error instanceof Error ? error.message : 'Unknown fetch error';
+          errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
           errorEl.classList.add('show');
         }
       }
