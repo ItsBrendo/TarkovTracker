@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarkov Tracker | Compare</title>
+    <style>
+      :root {
+        --bg: #101820;
+        --panel: #18232d;
+        --text: #eaf2f8;
+        --muted: #a6b9c8;
+        --accent: #7ad7ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding-bottom: 24px;
+        flex-wrap: wrap;
+      }
+
+      .nav-brand {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .nav-links a {
+        color: var(--text);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .nav-links a.active {
+        background: rgba(122, 215, 255, 0.12);
+        border-color: rgba(122, 215, 255, 0.5);
+      }
+
+      .header {
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 1.8rem;
+        margin-top: 10px;
+        font-weight: 700;
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .list-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="nav">
+        <div class="nav-brand">Tarkov Tracker</div>
+        <div class="nav-links">
+          <a href="index.html">Dashboard</a>
+          <a href="items.html">Items</a>
+          <a href="compare.html" class="active">Compare</a>
+        </div>
+      </nav>
+
+      <header class="header">
+        <h1>Compare prices</h1>
+        <div class="subtitle">Quick comparison of current item values and pricing spread.</div>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <div class="label">Highest 24h</div>
+          <div class="value" id="highest-value">—</div>
+        </div>
+        <div class="card">
+          <div class="label">Lowest last low</div>
+          <div class="value" id="lowest-low">—</div>
+        </div>
+        <div class="card">
+          <div class="label">Average item price</div>
+          <div class="value" id="average-price">—</div>
+        </div>
+      </section>
+
+      <div class="card">
+        <div class="list" id="comparison-list"></div>
+      </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+      const highestValueEl = document.getElementById('highest-value');
+      const lowestLowEl = document.getElementById('lowest-low');
+      const averagePriceEl = document.getElementById('average-price');
+      const comparisonListEl = document.getElementById('comparison-list');
+      let comparisonItems = TarkovTracker.fallbackItems;
+
+      function renderComparison(items = comparisonItems) {
+        const highest = [...items].sort((a, b) => Number(b.avg24hPrice || 0) - Number(a.avg24hPrice || 0))[0];
+        const lowest = [...items].sort((a, b) => Number(a.lastLowPrice || 0) - Number(b.lastLowPrice || 0))[0];
+        const avg = items.length ? items.reduce((sum, item) => sum + Number(item.avg24hPrice || 0), 0) / items.length : 0;
+
+        highestValueEl.textContent = highest ? `${highest.name} / ${TarkovTracker.formatPrice(highest.avg24hPrice)}` : '—';
+        lowestLowEl.textContent = lowest ? `${lowest.name} / ${TarkovTracker.formatPrice(lowest.lastLowPrice)}` : '—';
+        averagePriceEl.textContent = TarkovTracker.formatPrice(avg);
+
+        comparisonListEl.innerHTML = '';
+
+        [...items].sort((a, b) => Number(b.avg24hPrice || 0) - Number(a.avg24hPrice || 0)).forEach((item) => {
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.innerHTML = `
+            <span>${item.name}</span>
+            <strong>${TarkovTracker.formatPrice(item.avg24hPrice)}</strong>
+          `;
+          comparisonListEl.appendChild(row);
+        });
+      }
+
+      async function loadComparisonData() {
+        try {
+          comparisonItems = await TarkovTracker.fetchItems();
+          renderComparison(comparisonItems);
+        } catch (error) {
+          console.error(error);
+          comparisonItems = TarkovTracker.fallbackItems;
+          renderComparison(comparisonItems);
+        }
+      }
+
+      loadComparisonData();
+    </script>
+  </body>
+</html>

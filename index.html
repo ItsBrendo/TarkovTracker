@@ -12,6 +12,8 @@
         --text: #eaf2f8;
         --muted: #a6b9c8;
         --accent: #7ad7ff;
+        --accent-strong: #53c7ff;
+        --success: #59d98d;
         --danger: #ff7f7f;
       }
 
@@ -20,41 +22,101 @@
       body {
         margin: 0;
         font-family: Arial, sans-serif;
-        background: var(--bg);
+        background: linear-gradient(180deg, #0d141c 0%, #101820 100%);
         color: var(--text);
       }
 
       .container {
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 24px;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 0 24px;
+        flex-wrap: wrap;
+      }
+
+      .nav-brand {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .nav-links a {
+        color: var(--text);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .nav-links a.active {
+        background: rgba(122, 215, 255, 0.12);
+        border-color: rgba(122, 215, 255, 0.5);
       }
 
       .header {
         display: flex;
         justify-content: space-between;
         gap: 16px;
-        align-items: center;
+        align-items: end;
         margin-bottom: 24px;
         flex-wrap: wrap;
       }
 
       h1 {
         margin: 0;
-        font-size: 2rem;
+        font-size: 2.2rem;
       }
 
-      button {
+      .subtitle {
+        color: var(--muted);
+        margin-top: 8px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      button, .button-link {
         background: var(--accent);
-        color: #0b1620;
+        color: #07141d;
         border: none;
         border-radius: 8px;
         padding: 10px 16px;
         font-weight: 700;
         cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
       }
 
-      button:hover { opacity: 0.9; }
+      button:hover, .button-link:hover { opacity: 0.94; }
+
+      .button-secondary {
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
 
       .card {
         background: var(--panel);
@@ -62,6 +124,19 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+      }
+
+      .stat-label {
+        color: var(--muted);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-top: 10px;
       }
 
       .status {
@@ -73,6 +148,7 @@
       .error {
         color: var(--danger);
         display: none;
+        margin-bottom: 12px;
       }
 
       .error.show {
@@ -99,18 +175,62 @@
       .muted {
         color: var(--muted);
       }
-      
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .list-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+
       @media (max-width: 640px) {
+        .stats { grid-template-columns: 1fr; }
         th, td { font-size: 0.9rem; }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="header">
-        <h1>Tarkov Tracker</h1>
-        <button id="loadButton">Load market data</button>
-      </div>
+      <nav class="nav">
+        <div class="nav-brand">Tarkov Tracker</div>
+        <div class="nav-links">
+          <a href="index.html" class="active">Dashboard</a>
+          <a href="items.html">Items</a>
+          <a href="compare.html">Compare</a>
+        </div>
+      </nav>
+
+      <header class="header">
+        <div>
+          <h1>Market overview</h1>
+          <div class="subtitle">Track item value trends and identify the most active prices.</div>
+        </div>
+        <div class="actions">
+          <a class="button-link" href="items.html">Open item list</a>
+          <a class="button-link button-secondary" href="compare.html">Compare items</a>
+        </div>
+      </header>
+
+      <section class="stats">
+        <div class="card">
+          <div class="stat-label">Tracked items</div>
+          <div class="stat-value" id="tracked-count">10</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Best value</div>
+          <div class="stat-value" id="best-value">—</div>
+        </div>
+        <div class="card">
+          <div class="stat-label">Status</div>
+          <div class="stat-value" id="status-pill">Live</div>
+        </div>
+      </section>
 
       <div class="card">
         <div class="status" id="status">Ready.</div>
@@ -130,93 +250,42 @@
       </div>
     </div>
 
+    <script src="shared.js"></script>
     <script>
-      const API_URL = 'https://api.tarkov.dev/graphql';
-      const PROXY_URL = 'https://tarkovtracker.brendob99.workers.dev';
-      const FALLBACK_ITEMS = [
-        { name: 'P90', basePrice: 126000, avg24hPrice: 128500, lastLowPrice: 125000 },
-        { name: 'Roubles', basePrice: 100, avg24hPrice: 100, lastLowPrice: 100 },
-        { name: 'Salewa', basePrice: 1100, avg24hPrice: 1180, lastLowPrice: 1080 },
-        { name: 'Gold Skull', basePrice: 28500, avg24hPrice: 29200, lastLowPrice: 27600 },
-        { name: 'Can of Dr Pepper', basePrice: 3200, avg24hPrice: 3400, lastLowPrice: 3100 },
-        { name: 'M4A1', basePrice: 229000, avg24hPrice: 236500, lastLowPrice: 221000 },
-        { name: 'AK-74M', basePrice: 212500, avg24hPrice: 218000, lastLowPrice: 204000 },
-        { name: 'Intel', basePrice: 12850, avg24hPrice: 13500, lastLowPrice: 12000 },
-        { name: 'Battery', basePrice: 7800, avg24hPrice: 8200, lastLowPrice: 7600 },
-        { name: 'Ammo Case', basePrice: 14200, avg24hPrice: 14950, lastLowPrice: 13800 }
-      ];
-
       const statusEl = document.getElementById('status');
       const errorEl = document.getElementById('error');
       const itemsEl = document.getElementById('items');
-      const loadButton = document.getElementById('loadButton');
+      const trackedCountEl = document.getElementById('tracked-count');
+      const bestValueEl = document.getElementById('best-value');
+      const statusPillEl = document.getElementById('status-pill');
 
-      function formatPrice(value) {
-        if (value === null || value === undefined) return '—';
-        return `${Number(value).toLocaleString()} ₽`;
-      }
-
-      function setError(message) {
-        errorEl.textContent = message;
-        errorEl.classList.add('show');
-      }
-
-      function clearError() {
-        errorEl.textContent = '';
-        errorEl.classList.remove('show');
-      }
-
-      async function fetchTarkovData() {
-        const query = `
-          query {
-            items(limit: 10) {
-              name
-              basePrice
-              avg24hPrice
-              lastLowPrice
-            }
-          }
-        `;
-
-        const requestOptions = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ query })
-        };
-
-        const url = PROXY_URL || API_URL;
-
-        const response = await fetch(url, requestOptions);
-        if (!response.ok) {
-          const fallbackCode = [403, 429, 502, 503].includes(response.status);
-          if (fallbackCode) {
-            return FALLBACK_ITEMS;
-          }
-          throw new Error(`API request failed with status ${response.status}`);
+      function renderSummary(items) {
+        if (!items.length) {
+          trackedCountEl.textContent = '0';
+          bestValueEl.textContent = '—';
+          return;
         }
 
-        const payload = await response.json();
-        if (payload.errors && payload.errors.length) {
-          const firstErrorMessage = payload.errors[0].message || 'Unknown GraphQL error';
-          if (/unavailable|blocked|security service|cloudflare|forbidden/i.test(firstErrorMessage)) {
-            return FALLBACK_ITEMS;
-          }
-          throw new Error(firstErrorMessage);
-        }
+        trackedCountEl.textContent = String(items.length);
 
-        return payload.data?.items || FALLBACK_ITEMS;
+        const bestItem = [...items].sort((a, b) => {
+          const aValue = Number(a.avg24hPrice || 0);
+          const bValue = Number(b.avg24hPrice || 0);
+          return bValue - aValue;
+        })[0];
+
+        bestValueEl.textContent = bestItem ? `${bestItem.name} / ${TarkovTracker.formatPrice(bestItem.avg24hPrice)}` : '—';
       }
 
       async function loadItems() {
         statusEl.textContent = 'Loading data...';
-        clearError();
+        errorEl.textContent = '';
+        errorEl.classList.remove('show');
         itemsEl.innerHTML = '';
 
         try {
-          const items = await fetchTarkovData();
+          const items = await TarkovTracker.fetchItems();
+          renderSummary(items);
 
           if (!items.length) {
             statusEl.textContent = 'No items returned.';
@@ -227,37 +296,38 @@
             const row = document.createElement('tr');
             row.innerHTML = `
               <td>${item.name || 'Unknown item'}</td>
-              <td>${formatPrice(item.basePrice)}</td>
-              <td>${formatPrice(item.avg24hPrice)}</td>
-              <td>${formatPrice(item.lastLowPrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.basePrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.avg24hPrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.lastLowPrice)}</td>
             `;
             itemsEl.appendChild(row);
           });
 
           statusEl.textContent = `Loaded ${items.length} items.`;
+          statusPillEl.textContent = 'Live';
         } catch (error) {
           console.error(error);
+          statusPillEl.textContent = 'Fallback';
           statusEl.textContent = 'Showing offline fallback data.';
           itemsEl.innerHTML = '';
 
-          FALLBACK_ITEMS.forEach((item) => {
+          TarkovTracker.fallbackItems.forEach((item) => {
             const row = document.createElement('tr');
             row.innerHTML = `
               <td>${item.name || 'Unknown item'}</td>
-              <td>${formatPrice(item.basePrice)}</td>
-              <td>${formatPrice(item.avg24hPrice)}</td>
-              <td>${formatPrice(item.lastLowPrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.basePrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.avg24hPrice)}</td>
+              <td>${TarkovTracker.formatPrice(item.lastLowPrice)}</td>
             `;
             itemsEl.appendChild(row);
           });
 
-          setError(
-            'The live Tarkov API is blocked right now, so this page is showing cached fallback data.'
-          );
+          renderSummary(TarkovTracker.fallbackItems);
+          errorEl.textContent = 'The live Tarkov API is blocked right now, so this page is showing cached fallback data.';
+          errorEl.classList.add('show');
         }
       }
 
-      loadButton.addEventListener('click', loadItems);
       loadItems();
     </script>
   </body>
