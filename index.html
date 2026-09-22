@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tarkov Tracker</title>
+    <style>
+      :root {
+        --bg: #101820;
+        --panel: #18232d;
+        --panel-alt: #1d2d3a;
+        --text: #eaf2f8;
+        --muted: #a6b9c8;
+        --accent: #7ad7ff;
+        --danger: #ff7f7f;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      button {
+        background: var(--accent);
+        color: #0b1620;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:hover { opacity: 0.9; }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+      }
+
+      .status {
+        margin-bottom: 16px;
+        color: var(--muted);
+        min-height: 24px;
+      }
+
+      .error {
+        color: var(--danger);
+        display: none;
+      }
+
+      .error.show {
+        display: block;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+
+      th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        text-align: left;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+      
+      @media (max-width: 640px) {
+        th, td { font-size: 0.9rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Tarkov Tracker</h1>
+        <button id="loadButton">Load market data</button>
+      </div>
+
+      <div class="card">
+        <div class="status" id="status">Ready.</div>
+        <div class="error" id="error"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Base price</th>
+              <th>Average 24h</th>
+              <th>Last low</th>
+            </tr>
+          </thead>
+          <tbody id="items"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = 'https://api.tarkov.dev/graphql';
+      const PROXY_URL = 'https://tarkovtracker.brendob99.workers.dev';
+
+      const statusEl = document.getElementById('status');
+      const errorEl = document.getElementById('error');
+      const itemsEl = document.getElementById('items');
+      const loadButton = document.getElementById('loadButton');
+
+      function formatPrice(value) {
+        if (value === null || value === undefined) return '—';
+        return `${Number(value).toLocaleString()} ₽`;
+      }
+
+      function setError(message) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+      }
+
+      function clearError() {
+        errorEl.textContent = '';
+        errorEl.classList.remove('show');
+      }
+
+      async function fetchTarkovData() {
+        const query = `
+          query {
+            items(limit: 10) {
+              name
+              basePrice
+              avg24hPrice
+              lastLowPrice
+            }
+          }
+        `;
+
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ query })
+        };
+
+        const url = PROXY_URL || API_URL;
+
+        const response = await fetch(url, requestOptions);
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (payload.errors && payload.errors.length) {
+          throw new Error(payload.errors[0].message || 'Unknown GraphQL error');
+        }
+
+        return payload.data?.items || [];
+      }
+
+      async function loadItems() {
+        statusEl.textContent = 'Loading data...';
+        clearError();
+        itemsEl.innerHTML = '';
+
+        try {
+          const items = await fetchTarkovData();
+
+          if (!items.length) {
+            statusEl.textContent = 'No items returned.';
+            return;
+          }
+
+          items.forEach((item) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${item.name || 'Unknown item'}</td>
+              <td>${formatPrice(item.basePrice)}</td>
+              <td>${formatPrice(item.avg24hPrice)}</td>
+              <td>${formatPrice(item.lastLowPrice)}</td>
+            `;
+            itemsEl.appendChild(row);
+          });
+
+          statusEl.textContent = `Loaded ${items.length} items.`;
+        } catch (error) {
+          console.error(error);
+          statusEl.textContent = 'Data could not be loaded.';
+          setError(
+            'The tarkov.dev API is not returning browser CORS headers. ' +
+            'For GitHub Pages, use a small CORS proxy or a Cloudflare Worker and set PROXY_URL in this file.'
+          );
+        }
+      }
+
+      loadButton.addEventListener('click', loadItems);
+      loadItems();
+    </script>
+  </body>
+</html>
