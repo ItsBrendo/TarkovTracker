@@ -255,10 +255,10 @@
           allItems = await TarkovTracker.fetchItems();
           renderItems(allItems);
         } catch (error) {
-          console.error(error);
+          console.warn(error instanceof Error ? error.message : 'Unknown fetch error');
           allItems = TarkovTracker.fallbackItems;
           renderItems(allItems);
-          const reason = error instanceof Error ? error.message : 'Unknown fetch error';
+          const reason = TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown fetch error');
           errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
           errorEl.classList.add('show');
         }

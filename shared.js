@@ -1,6 +1,8 @@
 window.TarkovTracker = {
   API_URL: 'https://api.tarkov.dev/graphql',
+  REST_API_URL: 'https://api.tarkov.dev',
   PROXY_URL: 'https://tarkovtracker.brendob99.workers.dev',
+  lastError: '',
   fallbackItems: [
     { name: 'P90', basePrice: 126000, avg24hPrice: 128500, lastLowPrice: 125000 },
     { name: 'Roubles', basePrice: 100, avg24hPrice: 100, lastLowPrice: 100 },
@@ -37,6 +39,40 @@ window.TarkovTracker = {
     });
   },
 
+  async fetchSalewaCurrentPrice() {
+    const salewaFallback = this.fallbackItems.find((item) => item.name && item.name.toLowerCase() === 'salewa') || null;
+
+    try {
+      const response = await fetch(`${this.REST_API_URL}/regular/items`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        this.lastError = `Salewa fetch failed with status ${response.status}`;
+        return salewaFallback;
+      }
+
+      const items = await response.json();
+      const list = Array.isArray(items) ? items : Array.isArray(items?.data) ? items.data : Array.isArray(items?.items) ? items.items : [];
+      const salewa = list.find((item) => item && typeof item.name === 'string' && item.name.toLowerCase() === 'salewa');
+
+      if (!salewa) {
+        this.lastError = 'Salewa item was not found in the live API response.';
+        return salewaFallback;
+      }
+
+      this.lastError = '';
+      return salewa;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown fetch error';
+      this.lastError = message;
+      return salewaFallback;
+    }
+  },
+
   async fetchItems() {
     const query = `
       query {
@@ -49,40 +85,52 @@ window.TarkovTracker = {
       }
     `;
 
-    const response = await fetch(this.PROXY_URL || this.API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ query })
-    });
+    try {
+      const response = await fetch(this.PROXY_URL || this.API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
 
-    if (!response.ok) {
-      const message = `API request failed with status ${response.status}`;
-      throw new Error(message);
-    }
-
-    const payload = await response.json();
-    const fallbackReason = payload?.fallback === true ? (payload.error || 'The live Tarkov API is unavailable.') : null;
-
-    if (fallbackReason) {
-      throw new Error(fallbackReason);
-    }
-
-    if (payload.errors && payload.errors.length) {
-      const firstErrorMessage = payload.errors[0].message || 'Unknown GraphQL error';
-      if (/unavailable|blocked|security service|cloudflare|forbidden/i.test(firstErrorMessage)) {
-        throw new Error('The live Tarkov API is unavailable right now.');
+      if (!response.ok) {
+        const message = `API request failed with status ${response.status}`;
+        this.lastError = message;
+        return this.fallbackItems;
       }
-      throw new Error(firstErrorMessage);
-    }
 
-    const items = this.normalizeItems(payload.data?.items || this.fallbackItems);
-    if (!items.length) {
-      throw new Error('The live Tarkov API returned no valid items.');
-    }
+      const payload = await response.json();
+      const fallbackReason = payload?.fallback === true ? (payload.error || 'The live Tarkov API is unavailable.') : null;
 
-    return items;
+      if (fallbackReason) {
+        this.lastError = fallbackReason;
+        return this.fallbackItems;
+      }
+
+      if (payload.errors && payload.errors.length) {
+        const firstErrorMessage = payload.errors[0].message || 'Unknown GraphQL error';
+        if (/unavailable|blocked|security service|cloudflare|forbidden/i.test(firstErrorMessage)) {
+          this.lastError = 'The live Tarkov API is unavailable right now.';
+          return this.fallbackItems;
+        }
+        this.lastError = firstErrorMessage;
+        return this.fallbackItems;
+      }
+
+      const items = this.normalizeItems(payload.data?.items || this.fallbackItems);
+      if (!items.length) {
+        this.lastError = 'The live Tarkov API returned no valid items.';
+        return this.fallbackItems;
+      }
+
+      this.lastError = '';
+      return items;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown fetch error';
+      this.lastError = message;
+      return this.fallbackItems;
+    }
   }
 };

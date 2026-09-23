@@ -192,10 +192,10 @@
           errorEl.textContent = '';
           renderComparison(comparisonItems);
         } catch (error) {
-          console.error(error);
+          console.warn(error instanceof Error ? error.message : 'Unknown fetch error');
           comparisonItems = TarkovTracker.fallbackItems;
           renderComparison(comparisonItems);
-          const reason = error instanceof Error ? error.message : 'Unknown fetch error';
+          const reason = TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown fetch error');
           errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
           errorEl.style.display = 'block';
         }

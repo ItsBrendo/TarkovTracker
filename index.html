@@ -278,12 +278,20 @@
       }
 
       async function loadItems() {
-        statusEl.textContent = 'Loading data...';
+        statusEl.textContent = 'Fetching current price for Salewa...';
         errorEl.textContent = '';
         errorEl.classList.remove('show');
         itemsEl.innerHTML = '';
 
         try {
+          const salewa = await TarkovTracker.fetchSalewaCurrentPrice();
+          if (salewa) {
+            const livePrice = salewa.avg24hPrice ?? salewa.basePrice ?? salewa.lastLowPrice ?? null;
+            statusEl.textContent = livePrice !== null
+              ? `Fetching current price for Salewa... live value: ${TarkovTracker.formatPrice(livePrice)}`
+              : 'Fetching current price for Salewa...';
+          }
+
           const items = await TarkovTracker.fetchItems();
           renderSummary(items);
 
@@ -306,7 +314,7 @@
           statusEl.textContent = `Loaded ${items.length} items.`;
           statusPillEl.textContent = 'Live';
         } catch (error) {
-          console.error(error);
+          console.warn(error instanceof Error ? error.message : 'Unknown fetch error');
           statusPillEl.textContent = 'Fallback';
           statusEl.textContent = 'Showing offline fallback data.';
           itemsEl.innerHTML = '';
@@ -323,7 +331,7 @@
           });
 
           renderSummary(TarkovTracker.fallbackItems);
-          const reason = error instanceof Error ? error.message : 'Unknown fetch error';
+          const reason = TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown fetch error');
           errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
           errorEl.classList.add('show');
         }
