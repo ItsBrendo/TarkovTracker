@@ -76,6 +76,69 @@ window.TarkovTracker = {
     }
   },
 
+  async fetchPlayerSummary(accountId, gameMode = 'pve', token = '') {
+    const params = new URLSearchParams({ accountId, gameMode });
+    if (token) params.set('token', token);
+
+    const response = await fetch(`${this.PROXY_URL}/player?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const message = payload?.error || `Player profile request failed with status ${response.status}`;
+      this.lastError = message;
+      return null;
+    }
+
+    const payload = await response.json();
+    this.lastError = payload?.error || '';
+    return payload?.data || payload || null;
+  },
+
+  async fetchLiveSamples() {
+    const endpoints = [
+      { label: 'items', url: `${this.REST_API_URL}/regular/items` },
+      { label: 'maps', url: `${this.REST_API_URL}/regular/maps` },
+      { label: 'tasks', url: `${this.REST_API_URL}/regular/tasks` }
+    ];
+
+    const results = [];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint.url, {
+          method: 'GET',
+          headers: { Accept: 'application/json' }
+        });
+
+        if (!response.ok) {
+          results.push({ source: endpoint.label, error: `HTTP ${response.status}` });
+          continue;
+        }
+
+        const payload = await response.json();
+        const map = payload?.data && typeof payload.data === 'object' ? payload.data : {};
+        const list = Array.isArray(payload) ? payload : Array.isArray(map[endpoint.label]) ? map[endpoint.label] : Object.values(map[endpoint.label] || {});
+
+        const sample = list.slice(0, 5).map((entry) => ({
+          name: entry?.name || entry?.title || entry?.normalizedName || 'Unnamed',
+          basePrice: entry?.basePrice ?? entry?.avg24hPrice ?? entry?.lastLowPrice ?? null,
+          source: endpoint.label
+        }));
+
+        results.push({ source: endpoint.label, items: sample, total: list.length || sample.length });
+      } catch (error) {
+        results.push({ source: endpoint.label, error: error instanceof Error ? error.message : 'Unknown fetch error' });
+      }
+    }
+
+    return results;
+  },
+
   async fetchItems() {
     const query = `
       query {

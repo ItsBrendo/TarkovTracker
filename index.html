@@ -189,6 +189,35 @@
         border-bottom: 1px solid rgba(255,255,255,0.06);
       }
 
+      .live-feed {
+        margin-top: 20px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .feed-block {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+
+      .feed-block h3 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+        color: var(--accent);
+      }
+
+      .feed-block ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text);
+      }
+
+      .feed-block li {
+        margin-bottom: 6px;
+      }
+
       @media (max-width: 640px) {
         .stats { grid-template-columns: 1fr; }
         th, td { font-size: 0.9rem; }
@@ -247,6 +276,8 @@
           </thead>
           <tbody id="items"></tbody>
         </table>
+
+        <div class="live-feed" id="live-feed"></div>
       </div>
     </div>
 
@@ -258,6 +289,47 @@
       const trackedCountEl = document.getElementById('tracked-count');
       const bestValueEl = document.getElementById('best-value');
       const statusPillEl = document.getElementById('status-pill');
+      const liveFeedEl = document.getElementById('live-feed');
+
+      function renderLiveFeed(samples = []) {
+        liveFeedEl.innerHTML = '';
+
+        if (!samples.length) {
+          liveFeedEl.innerHTML = '<div class="feed-block"><h3>Live feed</h3><p>No live sample data loaded yet.</p></div>';
+          return;
+        }
+
+        samples.forEach((group) => {
+          const block = document.createElement('div');
+          block.className = 'feed-block';
+
+          const heading = document.createElement('h3');
+          heading.textContent = `${group.source} (${group.total || group.items?.length || 0})`;
+          block.appendChild(heading);
+
+          const list = document.createElement('ul');
+
+          if (group.error) {
+            const item = document.createElement('li');
+            item.textContent = `Error: ${group.error}`;
+            list.appendChild(item);
+          } else if (!group.items || !group.items.length) {
+            const item = document.createElement('li');
+            item.textContent = 'No records returned';
+            list.appendChild(item);
+          } else {
+            group.items.forEach((entry) => {
+              const item = document.createElement('li');
+              const value = entry.basePrice != null ? `${entry.name} — ${TarkovTracker.formatPrice(entry.basePrice)}` : entry.name;
+              item.textContent = value;
+              list.appendChild(item);
+            });
+          }
+
+          block.appendChild(list);
+          liveFeedEl.appendChild(block);
+        });
+      }
 
       function renderSummary(items) {
         if (!items.length) {
@@ -291,6 +363,9 @@
               ? `Fetching current price for Salewa... live value: ${TarkovTracker.formatPrice(livePrice)}`
               : 'Fetching current price for Salewa...';
           }
+
+          const liveSamples = await TarkovTracker.fetchLiveSamples();
+          renderLiveFeed(liveSamples);
 
           const items = await TarkovTracker.fetchItems();
           renderSummary(items);

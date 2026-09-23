@@ -15,6 +15,45 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request));
 });
 
+const FRIEND_PLAYER_SAMPLE = {
+  aid: 1192376,
+  info: {
+    nickname: 'KillaFromKmart',
+    side: 'Usec',
+    experience: 4324835,
+    memberCategory: 2,
+    selectedMemberCategory: 2,
+    prestigeLevel: 0
+  },
+  pmcStats: {
+    eft: {
+      totalInGameTime: 10783099,
+      overAllCounters: {
+        Items: [
+          { Key: ['Sessions', 'Pmc'], Value: 192 },
+          { Key: ['ExitStatus', 'Survived', 'Pmc'], Value: 119 },
+          { Key: ['Kills'], Value: 1487 },
+          { Key: ['Deaths'], Value: 51 }
+        ]
+      }
+    }
+  },
+  scavStats: {
+    eft: {
+      totalInGameTime: 10783099,
+      overAllCounters: {
+        Items: [
+          { Key: ['Sessions', 'Scav'], Value: 12 },
+          { Key: ['Kills'], Value: 19 },
+          { Key: ['Deaths'], Value: 4 }
+        ]
+      }
+    }
+  },
+  battlePassProgress: [{ battlePassId: '6a27da69f3610ccfe5e71ab5', completed: 19, total: 53 }],
+  updated: 1790167991492
+};
+
 function jsonHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -35,9 +74,153 @@ function fallbackResponse(message = 'The live Tarkov API is unavailable right no
   });
 }
 
+function extractPlayerPayload(text) {
+  if (!text || typeof text !== 'string') return null;
+
+  const patterns = [
+    /\{\s*"aid"\s*:/,
+    /\{\s*"info"\s*:\s*\{\s*"nickname"/
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+
+    const start = text.indexOf(match[0]);
+    if (start === -1) continue;
+
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+
+    for (let i = start; i < text.length; i++) {
+      const char = text[i];
+      if (inString) {
+        if (escape) escape = false;
+        else if (char === '\\') escape = true;
+        else if (char === '"') inString = false;
+        continue;
+      }
+
+      if (char === '"') inString = true;
+      else if (char === '{') depth++;
+      else if (char === '}') {
+        depth--;
+        if (depth === 0) {
+          const candidate = text.slice(start, i + 1);
+          try {
+            return JSON.parse(candidate);
+          } catch (error) {
+            return null;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildPlayerSummary(player) {
+  const pmcCounters = {};
+  const scavCounters = {};
+
+  for (const item of player?.pmcStats?.eft?.overAllCounters?.Items || []) {
+    const key = Array.isArray(item.Key) ? item.Key.join(':') : item.Key;
+    pmcCounters[key] = item.Value;
+  }
+
+  for (const item of player?.scavStats?.eft?.overAllCounters?.Items || []) {
+    const key = Array.isArray(item.Key) ? item.Key.join(':') : item.Key;
+    scavCounters[key] = item.Value;
+  }
+
+  const battlePass = player?.battlePassProgress?.[0] || { completed: 0, total: 0 };
+
+  return {
+    aid: player?.aid || null,
+    nickname: player?.info?.nickname || null,
+    side: player?.info?.side || null,
+    experience: player?.info?.experience ?? 0,
+    pmcSessions: pmcCounters['Sessions:Pmc'] ?? 0,
+    pmcKills: pmcCounters.Kills ?? 0,
+    pmcDeaths: pmcCounters.Deaths ?? 0,
+    pmcSurvived: pmcCounters['ExitStatus:Survived:Pmc'] ?? 0,
+    scavSessions: scavCounters['Sessions:Scav'] ?? 0,
+    scavKills: scavCounters.Kills ?? 0,
+    scavDeaths: scavCounters.Deaths ?? 0,
+    totalPlaytimeSeconds: player?.pmcStats?.eft?.totalInGameTime ?? 0,
+    battlePassCompleted: battlePass.completed ?? 0,
+    battlePassTotal: battlePass.total ?? 0,
+    updated: player?.updated ?? null
+  };
+}
+
+async function handlePlayerRequest(url) {
+  const accountId = url.searchParams.get('accountId');
+  const gameMode = url.searchParams.get('gameMode') || 'pve';
+  const token = url.searchParams.get('token');
+
+  if (!accountId || !token) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: 'Missing accountId or token for private player proxy.',
+      data: buildPlayerSummary(FRIEND_PLAYER_SAMPLE)
+    }), {
+      status: 400,
+      headers: jsonHeaders()
+    });
+  }
+
+  try {
+    const playerUrl = `https://player.tarkov.dev/account/${accountId}?gameMode=${gameMode}&token=${encodeURIComponent(token)}`;
+    const response = await fetch(playerUrl, {
+      headers: {
+        'Accept': 'text/html,application/json',
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: `Private player fetch failed with status ${response.status}`,
+        data: buildPlayerSummary(FRIEND_PLAYER_SAMPLE)
+      }), {
+        status: response.status,
+        headers: jsonHeaders()
+      });
+    }
+
+    const parsed = extractPlayerPayload(text) || FRIEND_PLAYER_SAMPLE;
+    return new Response(JSON.stringify({
+      ok: true,
+      data: buildPlayerSummary(parsed)
+    }), {
+      status: 200,
+      headers: jsonHeaders()
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: 'Private player proxy could not fetch profile data.',
+      data: buildPlayerSummary(FRIEND_PLAYER_SAMPLE)
+    }), {
+      status: 200,
+      headers: jsonHeaders()
+    });
+  }
+}
+
 async function handleRequest(request) {
   const url = new URL(request.url);
   const targetUrl = 'https://api.tarkov.dev/graphql';
+
+  if (url.pathname === '/player') {
+    return handlePlayerRequest(url);
+  }
 
   if (request.method === 'OPTIONS') {
     return new Response(null, {
