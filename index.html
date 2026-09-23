@@ -8,13 +8,11 @@
       :root {
         --bg: #101820;
         --panel: #18232d;
-        --panel-alt: #1d2d3a;
         --text: #eaf2f8;
         --muted: #a6b9c8;
         --accent: #7ad7ff;
-        --accent-strong: #53c7ff;
-        --success: #59d98d;
         --danger: #ff7f7f;
+        --good: #59d98d;
       }
 
       * { box-sizing: border-box; }
@@ -29,389 +27,240 @@
       .container {
         max-width: 1100px;
         margin: 0 auto;
-        padding: 24px;
-      }
-
-      .nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 16px;
-        padding: 16px 0 24px;
-        flex-wrap: wrap;
-      }
-
-      .nav-brand {
-        font-size: 1.5rem;
-        font-weight: 700;
-      }
-
-      .nav-links {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .nav-links a {
-        color: var(--text);
-        text-decoration: none;
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .nav-links a.active {
-        background: rgba(122, 215, 255, 0.12);
-        border-color: rgba(122, 215, 255, 0.5);
-      }
-
-      .header {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        align-items: end;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
+        padding: 32px 20px;
       }
 
       h1 {
-        margin: 0;
-        font-size: 2.2rem;
+        margin: 0 0 24px;
+        font-size: 2rem;
       }
 
-      .subtitle {
-        color: var(--muted);
-        margin-top: 8px;
-      }
-
-      .actions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      button, .button-link {
-        background: var(--accent);
-        color: #07141d;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 16px;
-        font-weight: 700;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-      }
-
-      button:hover, .button-link:hover { opacity: 0.94; }
-
-      .button-secondary {
-        background: rgba(255,255,255,0.04);
-        color: var(--text);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .stats {
+      .layout {
         display: grid;
-        grid-template-columns: repeat(3, minmax(180px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        grid-template-columns: 1fr 1.4fr;
+        gap: 20px;
       }
 
       .card {
         background: var(--panel);
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 12px;
-        padding: 20px;
+        padding: 18px;
         box-shadow: 0 8px 22px rgba(0,0,0,0.2);
       }
 
-      .stat-label {
-        color: var(--muted);
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-top: 10px;
+      .card h2 {
+        margin: 0 0 12px;
+        font-size: 1.1rem;
+        color: var(--accent);
       }
 
       .status {
-        margin-bottom: 16px;
         color: var(--muted);
         min-height: 24px;
-      }
-
-      .error {
-        color: var(--danger);
-        display: none;
         margin-bottom: 12px;
       }
 
-      .error.show {
+      .error {
+        display: none;
+        color: var(--danger);
+        background: rgba(255,127,127,0.08);
+        padding: 10px 12px;
+        border: 1px solid rgba(255,127,127,0.25);
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+
+      .error.visible {
         display: block;
       }
 
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 8px;
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 10px;
       }
 
-      th, td {
-        padding: 12px 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        text-align: left;
+      .list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
       }
 
-      th {
-        color: var(--muted);
-        font-weight: 700;
+      .list strong {
+        color: var(--accent);
       }
 
       .muted {
         color: var(--muted);
       }
 
-      .list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .list-item {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-      }
-
-      .live-feed {
-        margin-top: 20px;
-        display: grid;
-        gap: 12px;
-      }
-
-      .feed-block {
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 10px;
-        padding: 12px 14px;
-      }
-
-      .feed-block h3 {
-        margin: 0 0 10px;
-        font-size: 1rem;
-        color: var(--accent);
-      }
-
-      .feed-block ul {
-        margin: 0;
-        padding-left: 18px;
-        color: var(--text);
-      }
-
-      .feed-block li {
-        margin-bottom: 6px;
-      }
-
-      @media (max-width: 640px) {
-        .stats { grid-template-columns: 1fr; }
-        th, td { font-size: 0.9rem; }
+      @media (max-width: 760px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <nav class="nav">
-        <div class="nav-brand">Tarkov Tracker</div>
-        <div class="nav-links">
-          <a href="index.html" class="active">Dashboard</a>
-          <a href="items.html">Items</a>
-          <a href="compare.html">Compare</a>
-        </div>
-      </nav>
+      <h1>Live Tarkov Data</h1>
 
-      <header class="header">
-        <div>
-          <h1>Market overview</h1>
-          <div class="subtitle">Track item value trends and identify the most active prices.</div>
-        </div>
-        <div class="actions">
-          <a class="button-link" href="items.html">Open item list</a>
-          <a class="button-link button-secondary" href="compare.html">Compare items</a>
-        </div>
-      </header>
+      <div class="layout">
+        <section class="card">
+          <h2>Player</h2>
+          <div id="player-status" class="status">Loading player data...</div>
+          <div id="player-error" class="error"></div>
+          <ul id="player-list" class="list"></ul>
+        </section>
 
-      <section class="stats">
-        <div class="card">
-          <div class="stat-label">Tracked items</div>
-          <div class="stat-value" id="tracked-count">10</div>
-        </div>
-        <div class="card">
-          <div class="stat-label">Best value</div>
-          <div class="stat-value" id="best-value">—</div>
-        </div>
-        <div class="card">
-          <div class="stat-label">Status</div>
-          <div class="stat-value" id="status-pill">Live</div>
-        </div>
-      </section>
-
-      <div class="card">
-        <div class="status" id="status">Ready.</div>
-        <div class="error" id="error"></div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Base price</th>
-              <th>Average 24h</th>
-              <th>Last low</th>
-            </tr>
-          </thead>
-          <tbody id="items"></tbody>
-        </table>
-
-        <div class="live-feed" id="live-feed"></div>
+        <section class="card">
+          <h2>Items</h2>
+          <div id="items-status" class="status">Loading item data...</div>
+          <div id="items-error" class="error"></div>
+          <ul id="items-list" class="list"></ul>
+        </section>
       </div>
     </div>
 
     <script src="shared.js"></script>
     <script>
-      const statusEl = document.getElementById('status');
-      const errorEl = document.getElementById('error');
-      const itemsEl = document.getElementById('items');
-      const trackedCountEl = document.getElementById('tracked-count');
-      const bestValueEl = document.getElementById('best-value');
-      const statusPillEl = document.getElementById('status-pill');
-      const liveFeedEl = document.getElementById('live-feed');
+      const playerStatusEl = document.getElementById('player-status');
+      const playerErrorEl = document.getElementById('player-error');
+      const playerListEl = document.getElementById('player-list');
 
-      function renderLiveFeed(samples = []) {
-        liveFeedEl.innerHTML = '';
+      const itemsStatusEl = document.getElementById('items-status');
+      const itemsErrorEl = document.getElementById('items-error');
+      const itemsListEl = document.getElementById('items-list');
 
-        if (!samples.length) {
-          liveFeedEl.innerHTML = '<div class="feed-block"><h3>Live feed</h3><p>No live sample data loaded yet.</p></div>';
+      function showError(el, message) {
+        el.textContent = message;
+        el.classList.add('visible');
+      }
+
+      function clearError(el) {
+        el.textContent = '';
+        el.classList.remove('visible');
+      }
+
+      function renderPlayerSummary(data) {
+        playerListEl.innerHTML = '';
+
+        if (!data) {
+          playerListEl.innerHTML = '<li><span class="muted">No player data available.</span></li>';
           return;
         }
 
-        samples.forEach((group) => {
-          const block = document.createElement('div');
-          block.className = 'feed-block';
+        const rows = [
+          ['Nickname', data.nickname || 'Unknown'],
+          ['Side', data.side || 'Unknown'],
+          ['Experience', Number(data.experience || 0).toLocaleString()],
+          ['PMC Sessions', Number(data.pmcSessions || 0)],
+          ['PMC Kills', Number(data.pmcKills || 0)],
+          ['PMC Deaths', Number(data.pmcDeaths || 0)],
+          ['PMC Survived', Number(data.pmcSurvived || 0)],
+          ['Scav Kills', Number(data.scavKills || 0)],
+          ['Playtime', `${Number(data.totalPlaytimeSeconds || 0)} sec`],
+          ['Battle Pass', `${Number(data.battlePassCompleted || 0)}/${Number(data.battlePassTotal || 0)}`]
+        ];
 
-          const heading = document.createElement('h3');
-          heading.textContent = `${group.source} (${group.total || group.items?.length || 0})`;
-          block.appendChild(heading);
-
-          const list = document.createElement('ul');
-
-          if (group.error) {
-            const item = document.createElement('li');
-            item.textContent = `Error: ${group.error}`;
-            list.appendChild(item);
-          } else if (!group.items || !group.items.length) {
-            const item = document.createElement('li');
-            item.textContent = 'No records returned';
-            list.appendChild(item);
-          } else {
-            group.items.forEach((entry) => {
-              const item = document.createElement('li');
-              const value = entry.basePrice != null ? `${entry.name} — ${TarkovTracker.formatPrice(entry.basePrice)}` : entry.name;
-              item.textContent = value;
-              list.appendChild(item);
-            });
-          }
-
-          block.appendChild(list);
-          liveFeedEl.appendChild(block);
+        rows.forEach(([label, value]) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+          playerListEl.appendChild(li);
         });
       }
 
-      function renderSummary(items) {
-        if (!items.length) {
-          trackedCountEl.textContent = '0';
-          bestValueEl.textContent = '—';
+      async function loadPlayer() {
+        const params = new URLSearchParams(window.location.search);
+        const accountId = params.get('accountId') || '1192376';
+        const gameMode = params.get('gameMode') || 'pve';
+        const token = params.get('token') || '';
+
+        const workerUrl = `${TarkovTracker.PROXY_URL}/player?accountId=${encodeURIComponent(accountId)}&gameMode=${encodeURIComponent(gameMode)}`;
+
+        if (!token) {
+          playerStatusEl.textContent = 'Waiting for private player token.';
+          showError(playerErrorEl, 'Player data unavailable: add ?accountId=1192376&gameMode=pve&token=YOUR_TOKEN to the URL.');
           return;
         }
 
-        trackedCountEl.textContent = String(items.length);
-
-        const bestItem = [...items].sort((a, b) => {
-          const aValue = Number(a.avg24hPrice || 0);
-          const bValue = Number(b.avg24hPrice || 0);
-          return bValue - aValue;
-        })[0];
-
-        bestValueEl.textContent = bestItem ? `${bestItem.name} / ${TarkovTracker.formatPrice(bestItem.avg24hPrice)}` : '—';
-      }
-
-      async function loadItems() {
-        statusEl.textContent = 'Fetching current price for Salewa...';
-        errorEl.textContent = '';
-        errorEl.classList.remove('show');
-        itemsEl.innerHTML = '';
-
         try {
-          const salewa = await TarkovTracker.fetchSalewaCurrentPrice();
-          if (salewa) {
-            const livePrice = salewa.avg24hPrice ?? salewa.basePrice ?? salewa.lastLowPrice ?? null;
-            statusEl.textContent = livePrice !== null
-              ? `Fetching current price for Salewa... live value: ${TarkovTracker.formatPrice(livePrice)}`
-              : 'Fetching current price for Salewa...';
-          }
+          playerStatusEl.textContent = 'Loading player data...';
+          clearError(playerErrorEl);
 
-          const liveSamples = await TarkovTracker.fetchLiveSamples();
-          renderLiveFeed(liveSamples);
-
-          const items = await TarkovTracker.fetchItems();
-          renderSummary(items);
-
-          if (!items.length) {
-            statusEl.textContent = 'No items returned.';
-            return;
-          }
-
-          items.forEach((item) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${item.name || 'Unknown item'}</td>
-              <td>${TarkovTracker.formatPrice(item.basePrice)}</td>
-              <td>${TarkovTracker.formatPrice(item.avg24hPrice)}</td>
-              <td>${TarkovTracker.formatPrice(item.lastLowPrice)}</td>
-            `;
-            itemsEl.appendChild(row);
+          const response = await fetch(`${workerUrl}&token=${encodeURIComponent(token)}`, {
+            headers: {
+              Accept: 'application/json'
+            }
           });
 
-          statusEl.textContent = `Loaded ${items.length} items.`;
-          statusPillEl.textContent = 'Live';
+          const payload = await response.json();
+
+          if (!response.ok || !payload?.data) {
+            throw new Error(payload?.error || 'Player fetch failed.');
+          }
+
+          playerStatusEl.textContent = 'Player loaded.';
+          renderPlayerSummary(payload.data);
         } catch (error) {
-          console.warn(error instanceof Error ? error.message : 'Unknown fetch error');
-          statusPillEl.textContent = 'Fallback';
-          statusEl.textContent = 'Showing offline fallback data.';
-          itemsEl.innerHTML = '';
-
-          TarkovTracker.fallbackItems.forEach((item) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${item.name || 'Unknown item'}</td>
-              <td>${TarkovTracker.formatPrice(item.basePrice)}</td>
-              <td>${TarkovTracker.formatPrice(item.avg24hPrice)}</td>
-              <td>${TarkovTracker.formatPrice(item.lastLowPrice)}</td>
-            `;
-            itemsEl.appendChild(row);
-          });
-
-          renderSummary(TarkovTracker.fallbackItems);
-          const reason = TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown fetch error');
-          errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
-          errorEl.classList.add('show');
+          playerStatusEl.textContent = 'Player data unavailable.';
+          showError(playerErrorEl, error instanceof Error ? error.message : 'Unknown player fetch error.');
+          renderPlayerSummary(null);
         }
       }
 
+      function renderItems(items) {
+        itemsListEl.innerHTML = '';
+
+        if (!items.length) {
+          itemsListEl.innerHTML = '<li><span class="muted">No item data returned.</span></li>';
+          return;
+        }
+
+        items.slice(0, 10).forEach((item) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span>${item.name || 'Unknown item'}</span><strong>${TarkovTracker.formatPrice(item.basePrice ?? item.avg24hPrice ?? item.lastLowPrice)}</strong>`;
+          itemsListEl.appendChild(li);
+        });
+      }
+
+      async function loadItems() {
+        try {
+          itemsStatusEl.textContent = 'Loading item data...';
+          clearError(itemsErrorEl);
+
+          const response = await fetch('https://json.tarkov.dev/regular/items', {
+            headers: {
+              Accept: 'application/json'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const payload = await response.json();
+          const itemMap = payload?.data?.items && typeof payload.data.items === 'object' ? Object.values(payload.data.items) : Array.isArray(payload) ? payload : [];
+
+          if (!itemMap.length) {
+            throw new Error('No item records returned from the live API.');
+          }
+
+          itemsStatusEl.textContent = `Loaded ${itemMap.length} items.`;
+          renderItems(itemMap);
+        } catch (error) {
+          itemsStatusEl.textContent = 'Item data unavailable.';
+          showError(itemsErrorEl, error instanceof Error ? error.message : 'Unknown item fetch error.');
+          itemsListEl.innerHTML = '<li><span class="muted">Error loading items.</span></li>';
+        }
+      }
+
+      loadPlayer();
       loadItems();
     </script>
   </body>
