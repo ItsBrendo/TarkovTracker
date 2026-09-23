@@ -1,6 +1,6 @@
 window.TarkovTracker = {
   API_URL: 'https://api.tarkov.dev/graphql',
-  REST_API_URL: 'https://api.tarkov.dev',
+  REST_API_URL: 'https://json.tarkov.dev',
   PROXY_URL: 'https://tarkovtracker.brendob99.workers.dev',
   lastError: '',
   fallbackItems: [
@@ -56,16 +56,19 @@ window.TarkovTracker = {
       }
 
       const items = await response.json();
-      const list = Array.isArray(items) ? items : Array.isArray(items?.data) ? items.data : Array.isArray(items?.items) ? items.items : [];
+      const itemMap = items?.data?.items && typeof items.data.items === 'object' ? Object.values(items.data.items) : [];
+      const list = Array.isArray(items) ? items : Array.isArray(items?.data) ? items.data : Array.isArray(items?.items) ? items.items : itemMap;
       const salewa = list.find((item) => item && typeof item.name === 'string' && item.name.toLowerCase() === 'salewa');
+      const salewaVariant = list.find((item) => item && typeof item.name === 'string' && item.name.toLowerCase().includes('salewa'));
+      const matchedItem = salewa || salewaVariant;
 
-      if (!salewa) {
+      if (!matchedItem) {
         this.lastError = 'Salewa item was not found in the live API response.';
         return salewaFallback;
       }
 
       this.lastError = '';
-      return salewa;
+      return matchedItem;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown fetch error';
       this.lastError = message;
