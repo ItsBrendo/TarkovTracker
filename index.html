@@ -83,6 +83,12 @@
         gap: 10px;
       }
 
+      #items-list {
+        max-height: 520px;
+        overflow-y: auto;
+        padding-right: 6px;
+      }
+
       .list li {
         display: flex;
         justify-content: space-between;
@@ -214,6 +220,33 @@
         }
       }
 
+      function displayItemName(item) {
+        const rawName = typeof item?.name === 'string' ? item.name.trim() : '';
+        const normalizedName = typeof item?.normalizedName === 'string' ? item.normalizedName.trim() : '';
+
+        if (rawName && !/^[0-9a-f]{24}(?:\s+(?:Name|ShortName))?$/i.test(rawName)) {
+          return rawName;
+        }
+
+        if (normalizedName) {
+          return normalizedName
+            .split(/[-_]+/)
+            .filter(Boolean)
+            .map((part) => {
+              if (part.toLowerCase() === 'x' || /^\d+x\d+$/i.test(part)) {
+                return part.toUpperCase();
+              }
+              if (/^\d+$/i.test(part)) {
+                return part;
+              }
+              return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+            })
+            .join(' ');
+        }
+
+        return rawName || 'Unknown item';
+      }
+
       function renderItems(items) {
         itemsListEl.innerHTML = '';
 
@@ -222,9 +255,9 @@
           return;
         }
 
-        items.slice(0, 10).forEach((item) => {
+        items.forEach((item) => {
           const li = document.createElement('li');
-          li.innerHTML = `<span>${item.name || 'Unknown item'}</span><strong>${TarkovTracker.formatPrice(item.basePrice ?? item.avg24hPrice ?? item.lastLowPrice)}</strong>`;
+          li.innerHTML = `<span>${displayItemName(item)}</span><strong>${TarkovTracker.formatPrice(item.basePrice ?? item.avg24hPrice ?? item.lastLowPrice)}</strong>`;
           itemsListEl.appendChild(li);
         });
       }
