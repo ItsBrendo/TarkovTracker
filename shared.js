@@ -113,34 +113,6 @@ window.TarkovTracker = {
     }
   },
 
-  async searchPlayers(nickname, gameMode = 'regular', token = '') {
-    if (!nickname || !token) {
-      this.lastError = 'A player name and Turnstile token are required.';
-      return null;
-    }
-
-    const params = new URLSearchParams({ nickname, gameMode, token });
-
-    try {
-      const response = await fetch(`${this.PROXY_URL}/player/search?${params.toString()}`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' }
-      });
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        this.lastError = payload?.error || `Player search failed with status ${response.status}`;
-        return null;
-      }
-
-      this.lastError = payload?.error || '';
-      return payload;
-    } catch (error) {
-      this.lastError = error instanceof Error ? error.message : 'Unknown player search error';
-      return null;
-    }
-  },
-
   async fetchLiveSamples() {
     const endpoints = [
       { label: 'items', url: `${this.REST_API_URL}/regular/items` },

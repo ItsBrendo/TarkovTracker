@@ -128,31 +128,31 @@
         font-size: 0.82rem;
       }
 
-      .search-form {
+      .roster-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 150px auto;
+        grid-template-columns: 220px minmax(0, 1fr);
         gap: 10px;
-        margin-bottom: 18px;
       }
 
-      .search-form input,
-      .search-form select,
-      .search-form button {
-        min-width: 0;
+      .player-roster {
+        display: grid;
+        gap: 8px;
+      }
+
+      .roster-player {
         border: 1px solid var(--panel-edge);
-        padding: 12px;
         background: rgba(0,0,0,0.25);
         color: var(--text);
-        font: inherit;
+        padding: 12px;
+        cursor: pointer;
+        text-align: left;
       }
 
-      .search-form button {
+      .roster-player.active {
         background: var(--accent);
         color: #1b120a;
         border-color: var(--accent);
-        cursor: pointer;
         font-weight: 700;
-        text-transform: uppercase;
       }
 
       .status-label {
@@ -224,22 +224,22 @@
       </div>
 
       <section id="page-character" class="screen active">
-        <div class="screen-header">
-          <h2>Character</h2>
-          <div id="player-status" class="status-label">Loading profile...</div>
+        <div class="roster-layout">
+          <aside>
+            <div class="screen-header">
+              <h2>Community roster</h2>
+            </div>
+            <div id="player-roster" class="player-roster"></div>
+          </aside>
+          <section>
+            <div class="screen-header">
+              <h2 id="selected-player-name">Character</h2>
+              <div id="player-status" class="status-label">Select a player</div>
+            </div>
+            <div id="player-error" class="error-box"></div>
+            <div id="player-grid" class="profile-grid"></div>
+          </section>
         </div>
-
-        <form id="player-search-form" class="search-form">
-          <input id="player-name" type="text" placeholder="Search player name" autocomplete="off" required />
-          <select id="game-mode" aria-label="Game mode">
-            <option value="regular">PvP</option>
-            <option value="pve">PvE</option>
-          </select>
-          <button type="submit">Search</button>
-        </form>
-        <div id="token-help" class="status-label">A fresh Turnstile token is required for live name searches.</div>
-        <div id="player-error" class="error-box"></div>
-        <div id="player-grid" class="profile-grid"></div>
       </section>
     </div>
 
@@ -248,10 +248,13 @@
       const playerStatusEl = document.getElementById('player-status');
       const playerErrorEl = document.getElementById('player-error');
       const playerGridEl = document.getElementById('player-grid');
-      const playerSearchFormEl = document.getElementById('player-search-form');
-      const playerNameEl = document.getElementById('player-name');
-      const gameModeEl = document.getElementById('game-mode');
-      const tokenHelpEl = document.getElementById('token-help');
+      const playerRosterEl = document.getElementById('player-roster');
+      const selectedPlayerNameEl = document.getElementById('selected-player-name');
+
+      // Add private community members here with their Tarkov account IDs.
+      const COMMUNITY_PLAYERS = [
+        { nickname: 'KillaFromKmart', accountId: '1192376', gameMode: 'pve' }
+      ];
 
       function setPage(pageName) {
         const validPages = ['character'];
@@ -306,53 +309,51 @@
         });
       }
 
-      async function loadCharacter() {
-        const params = new URLSearchParams(window.location.search);
-        const accountId = params.get('accountId') || '1192376';
-        const gameMode = params.get('gameMode') || 'pve';
-        const token = params.get('token') || '';
-        const nickname = params.get('nickname') || '';
+      function getRoster() {
+        const configuredPlayers = new URLSearchParams(window.location.search).get('players');
+        if (!configuredPlayers) return COMMUNITY_PLAYERS;
 
-        const currentPage = readPageFromUrl();
-        setPage(currentPage);
-        playerNameEl.value = nickname;
-        gameModeEl.value = gameMode === 'pve' ? 'pve' : 'regular';
+        return configuredPlayers.split(',').map((nickname) => ({
+          nickname: nickname.trim(),
+          accountId: '',
+          gameMode: 'pve'
+        })).filter((player) => player.nickname);
+      }
 
-        if (!token) {
-          playerStatusEl.textContent = 'Ready for live search';
-          tokenHelpEl.textContent = 'Enter a player name and a fresh Turnstile token in the URL as ?nickname=NAME&token=TOKEN.';
-          renderPlayer({
-            nickname: 'KillaFromKmart',
-            side: 'Usec',
-            experience: 4324835,
-            pmcKills: 1487,
-            pmcDeaths: 51,
-            pmcSessions: 192,
-            totalPlaytimeSeconds: 10783099,
-            battlePassCompleted: 19,
-            battlePassTotal: 53
+      function renderRoster(players, selectedNickname) {
+        playerRosterEl.innerHTML = '';
+        players.forEach((player) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = `roster-player${player.nickname === selectedNickname ? ' active' : ''}`;
+          button.textContent = player.nickname;
+          button.addEventListener('click', () => {
+            loadPlayer(player);
+            renderRoster(players, player.nickname);
           });
+          playerRosterEl.appendChild(button);
+        });
+      }
+
+      async function loadPlayer(player) {
+        const token = new URLSearchParams(window.location.search).get('token') || '';
+        selectedPlayerNameEl.textContent = player.nickname;
+
+        if (!player.accountId || !token) {
+          playerStatusEl.textContent = 'Account ID or token missing';
+          renderPlayer(null);
+          showError(player.accountId
+            ? 'Add a runtime token to load this profile.'
+            : 'Add this player\'s Tarkov account ID to COMMUNITY_PLAYERS.');
           return;
         }
 
         try {
           playerStatusEl.textContent = 'Loading profile...';
           clearError();
-          let player = null;
-
-          if (nickname) {
-            const searchResult = await TarkovTracker.searchPlayers(nickname, gameMode, token);
-            const matches = Array.isArray(searchResult) ? searchResult : searchResult?.players || searchResult?.data || [];
-            const firstMatch = Array.isArray(matches) ? matches[0] : null;
-            const foundAccountId = firstMatch?.aid || firstMatch?.accountId || firstMatch?.id;
-            if (!foundAccountId) throw new Error('No matching player profile was returned.');
-            player = await TarkovTracker.fetchPlayerSummary(String(foundAccountId), gameMode, token);
-          } else {
-            player = await TarkovTracker.fetchPlayerSummary(accountId, gameMode, token);
-          }
-
-          if (!player) throw new Error('Unable to load private character data.');
-          renderPlayer(player);
+          const profile = await TarkovTracker.fetchPlayerSummary(player.accountId, player.gameMode || 'pve', token);
+          if (!profile) throw new Error('Unable to load private character data.');
+          renderPlayer(profile);
           playerStatusEl.textContent = 'Profile synced';
         } catch (error) {
           playerStatusEl.textContent = 'Profile unavailable';
@@ -361,19 +362,14 @@
         }
       }
 
-      playerSearchFormEl.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const nickname = playerNameEl.value.trim();
-        const token = new URLSearchParams(window.location.search).get('token') || '';
-        const params = new URLSearchParams({
-          page: 'character',
-          nickname,
-          gameMode: gameModeEl.value
-        });
-        if (token) params.set('token', token);
-        window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
-        loadCharacter();
-      });
+      function loadCharacter() {
+        setPage(readPageFromUrl());
+        const roster = getRoster();
+        const selectedNickname = new URLSearchParams(window.location.search).get('player') || roster[0]?.nickname;
+        renderRoster(roster, selectedNickname);
+        const selectedPlayer = roster.find((player) => player.nickname === selectedNickname) || roster[0];
+        if (selectedPlayer) loadPlayer(selectedPlayer);
+      }
 
       window.addEventListener('popstate', loadCharacter);
       loadCharacter();
