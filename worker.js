@@ -184,10 +184,10 @@ async function handlePlayerRequest(url) {
     const text = await response.text();
 
     if (!response.ok) {
+      const upstreamMessage = text.length < 500 ? text : `HTTP ${response.status}`;
       return new Response(JSON.stringify({
         ok: false,
-        error: `Private player fetch failed with status ${response.status}`,
-        data: buildPlayerSummary(FRIEND_PLAYER_SAMPLE)
+        error: `Private player fetch failed with status ${response.status}: ${upstreamMessage}`
       }), {
         status: response.status,
         headers: jsonHeaders()
@@ -205,10 +205,9 @@ async function handlePlayerRequest(url) {
   } catch (error) {
     return new Response(JSON.stringify({
       ok: false,
-      error: 'Private player proxy could not fetch profile data.',
-      data: buildPlayerSummary(FRIEND_PLAYER_SAMPLE)
+      error: error instanceof Error ? error.message : 'Private player proxy could not fetch profile data.'
     }), {
-      status: 200,
+      status: 502,
       headers: jsonHeaders()
     });
   }

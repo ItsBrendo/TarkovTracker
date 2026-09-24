@@ -315,7 +315,7 @@
           playerStatusEl.textContent = 'Profile synced';
         } catch (error) {
           playerStatusEl.textContent = 'Profile unavailable';
-          showError(error instanceof Error ? error.message : 'Unknown profile error');
+          showError(TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown profile error'));
           renderPlayer(null);
         }
       }
