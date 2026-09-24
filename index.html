@@ -107,6 +107,11 @@
         text-transform: uppercase;
       }
 
+      .turnstile {
+        margin: 0 0 18px;
+        min-height: 65px;
+      }
+
       .profile-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -169,6 +174,13 @@
               <h2 id="selected-player-name">Character</h2>
               <div id="player-status" class="status-label">Select a player</div>
             </div>
+            <div
+              id="turnstile-widget"
+              class="turnstile"
+              data-sitekey="0x4AAAAAAFCDjJpFe_zy3kpw"
+              data-callback="onTurnstileSuccess"
+              data-expired-callback="onTurnstileExpired"
+            ></div>
             <div id="player-error" class="error-box"></div>
             <div id="player-grid" class="profile-grid"></div>
           </section>
@@ -176,6 +188,7 @@
       </section>
     </div>
 
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script src="shared.js"></script>
     <script>
       const playerStatusEl = document.getElementById('player-status');
@@ -183,6 +196,10 @@
       const playerGridEl = document.getElementById('player-grid');
       const playerRosterEl = document.getElementById('player-roster');
       const selectedPlayerNameEl = document.getElementById('selected-player-name');
+      const turnstileWidgetEl = document.getElementById('turnstile-widget');
+      const TURNSTILE_SITE_KEY = '0x4AAAAAAFCDjJpFe_zy3kpw';
+      let turnstileToken = '';
+      let selectedPlayer = null;
 
       // Add private community members here with their Tarkov account IDs.
       const COMMUNITY_PLAYERS = [
@@ -269,22 +286,27 @@
       }
 
       async function loadPlayer(player) {
-        const token = new URLSearchParams(window.location.search).get('token') || '';
+        selectedPlayer = player;
         selectedPlayerNameEl.textContent = player.nickname;
 
-        if (!player.accountId || !token) {
-          playerStatusEl.textContent = 'Account ID or token missing';
+        if (!player.accountId) {
+          playerStatusEl.textContent = 'Account ID missing';
           renderPlayer(null);
-          showError(player.accountId
-            ? 'Add a runtime token to load this profile.'
-            : 'Add this player\'s Tarkov account ID to COMMUNITY_PLAYERS.');
+          showError('Add this player\'s Tarkov account ID to COMMUNITY_PLAYERS.');
+          return;
+        }
+
+        if (!turnstileToken) {
+          playerStatusEl.textContent = 'Verification required';
+          renderPlayer(null);
+          showError('Complete the verification above to load this profile.');
           return;
         }
 
         try {
           playerStatusEl.textContent = 'Loading profile...';
           clearError();
-          const profile = await TarkovTracker.fetchPlayerSummary(player.accountId, player.gameMode || 'pve', token);
+          const profile = await TarkovTracker.fetchPlayerSummary(player.accountId, player.gameMode || 'pve', turnstileToken);
           if (!profile) throw new Error('Unable to load private character data.');
           renderPlayer(profile);
           playerStatusEl.textContent = 'Profile synced';
@@ -303,6 +325,23 @@
         const selectedPlayer = roster.find((player) => player.nickname === selectedNickname) || roster[0];
         if (selectedPlayer) loadPlayer(selectedPlayer);
       }
+
+      function onTurnstileSuccess(token) {
+        turnstileToken = token;
+        clearError();
+        if (selectedPlayer) loadPlayer(selectedPlayer);
+      }
+
+      function onTurnstileExpired() {
+        turnstileToken = '';
+        playerStatusEl.textContent = 'Verification expired';
+      }
+
+      window.onTurnstileSuccess = onTurnstileSuccess;
+      window.onTurnstileExpired = onTurnstileExpired;
+      turnstileWidgetEl.dataset.sitekey = TURNSTILE_SITE_KEY;
+      turnstileWidgetEl.dataset.callback = 'onTurnstileSuccess';
+      turnstileWidgetEl.dataset['expired-callback'] = 'onTurnstileExpired';
 
       window.addEventListener('popstate', loadCharacter);
       loadCharacter();
