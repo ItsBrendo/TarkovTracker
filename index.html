@@ -135,13 +135,13 @@
 
     <script src="shared.js"></script>
     <script>
-      const playerStatusEl = document.getElementById('player-status');
-      const playerErrorEl = document.getElementById('player-error');
-      const playerListEl = document.getElementById('player-list');
+      const API_URL = 'https://api.tarkov.dev/graphql';
+      const PROXY_URL = 'https://tarkovtracker.brendob99.workers.dev';
 
-      const itemsStatusEl = document.getElementById('items-status');
-      const itemsErrorEl = document.getElementById('items-error');
-      const itemsListEl = document.getElementById('items-list');
+      const statusEl = document.getElementById('status');
+      const errorEl = document.getElementById('error');
+      const itemsEl = document.getElementById('items');
+      const loadButton = document.getElementById('loadButton');
 
       function showError(el, message) {
         el.textContent = message;
@@ -262,34 +262,53 @@
         });
       }
 
-      async function loadItems() {
-        try {
-          itemsStatusEl.textContent = 'Loading item data...';
-          clearError(itemsErrorEl);
+      function renderItems(items) {
+        itemsEl.innerHTML = '';
 
-          const response = await fetch('https://json.tarkov.dev/regular/items', {
-            headers: {
-              Accept: 'application/json'
-            }
+        items.forEach((item) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.name || 'Unknown item'}</td>
+            <td>${formatPrice(item.basePrice)}</td>
+            <td>${formatPrice(item.avg24hPrice)}</td>
+            <td>${formatPrice(item.lastLowPrice)}</td>
+          `;
+          itemsEl.appendChild(row);
+        });
+      }
+
+      async function loadItems() {
+        statusEl.textContent = 'Loading data...';
+        clearError();
+        itemsEl.innerHTML = '';
+
+        try {
+          const items = await fetchTarkovData();
+
+          if (!items.length) {
+            statusEl.textContent = 'No items returned.';
+            return;
+          }
+
+          items.forEach((item) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${item.name || 'Unknown item'}</td>
+              <td>${formatPrice(item.basePrice)}</td>
+              <td>${formatPrice(item.avg24hPrice)}</td>
+              <td>${formatPrice(item.lastLowPrice)}</td>
+            `;
+            itemsEl.appendChild(row);
           });
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-
-          const payload = await response.json();
-          const itemMap = payload?.data?.items && typeof payload.data.items === 'object' ? Object.values(payload.data.items) : Array.isArray(payload) ? payload : [];
-
-          if (!itemMap.length) {
-            throw new Error('No item records returned from the live API.');
-          }
-
-          itemsStatusEl.textContent = `Loaded ${itemMap.length} items.`;
-          renderItems(itemMap);
+          statusEl.textContent = `Loaded ${items.length} items.`;
         } catch (error) {
-          itemsStatusEl.textContent = 'Item data unavailable.';
-          showError(itemsErrorEl, error instanceof Error ? error.message : 'Unknown item fetch error.');
-          itemsListEl.innerHTML = '<li><span class="muted">Error loading items.</span></li>';
+          console.error(error);
+          statusEl.textContent = 'Data could not be loaded.';
+          setError(
+            'The Tarkov data source is temporarily unavailable or blocked right now. ' +
+            'Please wait a minute and try again.'
+          );
         }
       }
 
