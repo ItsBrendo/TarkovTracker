@@ -214,12 +214,56 @@ async function handlePlayerRequest(url) {
   }
 }
 
+async function handlePlayerSearchRequest(url) {
+  const nickname = url.searchParams.get('nickname');
+  const gameMode = url.searchParams.get('gameMode') || 'regular';
+  const token = url.searchParams.get('token');
+
+  if (!nickname || !token) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: 'Missing nickname or Turnstile token.'
+    }), {
+      status: 400,
+      headers: jsonHeaders()
+    });
+  }
+
+  try {
+    const playerUrl = `https://player.tarkov.dev/name/${encodeURIComponent(nickname)}?gameMode=${encodeURIComponent(gameMode)}&token=${encodeURIComponent(token)}`;
+    const response = await fetch(playerUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+    const text = await response.text();
+
+    return new Response(text, {
+      status: response.status,
+      headers: jsonHeaders()
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      ok: false,
+      error: 'Player name search could not reach the Tarkov player service.'
+    }), {
+      status: 502,
+      headers: jsonHeaders()
+    });
+  }
+}
+
 async function handleRequest(request) {
   const url = new URL(request.url);
   const targetUrl = 'https://api.tarkov.dev/graphql';
 
   if (url.pathname === '/player') {
     return handlePlayerRequest(url);
+  }
+
+  if (url.pathname === '/player/search') {
+    return handlePlayerSearchRequest(url);
   }
 
   if (request.method === 'OPTIONS') {
