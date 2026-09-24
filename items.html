@@ -3,125 +3,151 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tarkov Tracker | Items</title>
+    <title>Tarkov Tracker | Item Browser</title>
     <style>
       :root {
-        --bg: #101820;
-        --panel: #18232d;
-        --text: #eaf2f8;
-        --muted: #a6b9c8;
-        --accent: #7ad7ff;
-        --danger: #ff7f7f;
+        --bg: #090d10;
+        --bg-2: #10181c;
+        --panel: rgba(17, 22, 25, 0.8);
+        --line: rgba(255,255,255,0.12);
+        --text: #edf2f0;
+        --muted: #98a5a9;
+        --accent: #e4b26d;
       }
 
       * { box-sizing: border-box; }
 
-      body {
+      html, body {
         margin: 0;
-        font-family: Arial, sans-serif;
-        background: var(--bg);
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 50% 10%, rgba(192, 170, 122, 0.18), transparent 18%),
+          linear-gradient(180deg, rgba(4,8,10,0.8), rgba(12,17,20,0.95)),
+          linear-gradient(135deg, #0a1115, #101820);
         color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
       }
 
-      .container {
-        max-width: 1100px;
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(0,0,0,0.18), transparent 30%, rgba(0,0,0,0.18));
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 42px 24px 64px;
       }
 
-      .nav {
+      .topbar {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        gap: 16px;
-        padding-bottom: 22px;
-        flex-wrap: wrap;
-      }
-
-      .nav-brand {
-        font-size: 1.5rem;
-        font-weight: 700;
-      }
-
-      .nav-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      .nav-links a {
-        color: var(--text);
-        text-decoration: none;
-        padding: 8px 12px;
-        border-radius: 8px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .nav-links a.active {
-        background: rgba(122, 215, 255, 0.12);
-        border-color: rgba(122, 215, 255, 0.5);
-      }
-
-      .header {
-        display: flex;
         justify-content: space-between;
-        align-items: end;
         gap: 16px;
         margin-bottom: 20px;
         flex-wrap: wrap;
       }
 
-      h1 {
-        margin: 0;
-        font-size: 2rem;
+      .brand {
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .toolbar {
+      .nav {
         display: flex;
         gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .nav a {
+        color: var(--text);
+        text-decoration: none;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--line);
+        padding: 8px 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 0.72rem;
+      }
+
+      .nav a.active {
+        border-color: rgba(228, 178, 109, 0.75);
+        background: rgba(228, 178, 109, 0.08);
+      }
+
+      .panel {
+        background: rgba(17, 22, 26, 0.75);
+        border: 1px solid var(--line);
+        box-shadow: 0 18px 35px rgba(0,0,0,0.28);
+        padding: 18px;
+      }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
         align-items: center;
+        gap: 16px;
         flex-wrap: wrap;
         margin-bottom: 16px;
       }
 
-      input {
-        width: min(100%, 360px);
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: #101c26;
+      .panel-header h1 {
+        margin: 0;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: clamp(1.3rem, 2vw, 2.2rem);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+      }
+
+      .toolbar input {
+        flex: 1;
+        min-width: 200px;
+        padding: 12px 14px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--line);
         color: var(--text);
+        font-size: 0.96rem;
       }
 
-      button {
-        background: var(--accent);
-        color: #07141d;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 16px;
-        font-weight: 700;
-        cursor: pointer;
-      }
+      .toolbar input::placeholder { color: rgba(255,255,255,0.35); }
 
-      .card {
-        background: var(--panel);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+      .result-pill {
+        border: 1px solid var(--line);
+        padding: 8px 12px;
+        background: rgba(255,255,255,0.02);
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.72rem;
       }
 
       .status {
+        min-height: 22px;
         color: var(--muted);
-        margin-bottom: 12px;
-        min-height: 24px;
+        margin: 10px 0 12px;
       }
 
       .error {
         display: none;
-        color: var(--danger);
         margin-bottom: 12px;
+        padding: 10px 12px;
+        background: rgba(255, 112, 112, 0.08);
+        border: 1px solid rgba(255, 112, 112, 0.2);
+        color: #ffd2d2;
       }
 
       .error.show { display: block; }
@@ -139,72 +165,68 @@
 
       th {
         color: var(--muted);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        font-size: 0.7rem;
       }
 
-      .table-footer {
+      .item-name {
         display: flex;
-        justify-content: flex-end;
         align-items: center;
         gap: 10px;
-        margin-top: 12px;
-        color: var(--muted);
       }
 
-      .page-size-select {
-        background: #101c26;
-        color: var(--text);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 8px;
-        padding: 8px 10px;
+      .item-dot {
+        width: 9px;
+        height: 9px;
+        background: linear-gradient(180deg, #f6d8a4, var(--accent));
+        box-shadow: 0 0 8px rgba(228, 178, 109, 0.8);
+        border-radius: 2px;
+      }
+
+      @media (max-width: 700px) {
+        th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) {
+          white-space: nowrap;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <nav class="nav">
-        <div class="nav-brand">Tarkov Tracker</div>
-        <div class="nav-links">
+    <div class="shell">
+      <div class="topbar">
+        <div class="brand">Tarkov Tracker</div>
+        <div class="nav">
           <a href="index.html">Dashboard</a>
           <a href="items.html" class="active">Items</a>
           <a href="compare.html">Compare</a>
         </div>
-      </nav>
+      </div>
 
-      <header class="header">
-        <h1>Item browser</h1>
-        <button id="loadButton">Load market data</button>
-      </header>
-
-      <div class="card">
-        <div class="toolbar">
-          <input id="itemFilter" type="text" placeholder="Filter items by name..." />
-          <span id="resultCount" class="muted">0 items</span>
+      <div class="panel">
+        <div class="panel-header">
+          <h1>Item Browser</h1>
+          <button id="reloadButton" type="button" style="background: var(--accent); color: #17130d; border: none; padding: 10px 16px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer;">Reload</button>
         </div>
 
-        <div class="status" id="status">Ready.</div>
-        <div class="error" id="error"></div>
+        <div class="toolbar">
+          <input id="itemFilter" type="text" placeholder="Search items by name..." />
+          <div id="resultCount" class="result-pill">0 items</div>
+        </div>
+
+        <div id="status" class="status">Loading item data...</div>
+        <div id="error" class="error"></div>
 
         <table>
           <thead>
             <tr>
               <th>Item</th>
-              <th>Base price</th>
-              <th>Average 24h</th>
+              <th>Base</th>
+              <th>Avg 24h</th>
               <th>Last low</th>
             </tr>
           </thead>
           <tbody id="items"></tbody>
         </table>
-
-        <div class="table-footer">
-          <label for="pageSize">Items per page</label>
-          <select id="pageSize" class="page-size-select">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
-          </select>
-        </div>
       </div>
     </div>
 
@@ -215,67 +237,50 @@
       const statusEl = document.getElementById('status');
       const errorEl = document.getElementById('error');
       const itemsEl = document.getElementById('items');
-      const loadButton = document.getElementById('loadButton');
-      const pageSizeEl = document.getElementById('pageSize');
+      const reloadButtonEl = document.getElementById('reloadButton');
+
       let allItems = [];
-      let currentPage = 1;
-      let pageSize = Number(pageSizeEl.value);
 
       function renderItems(items) {
         const filterText = itemFilterEl.value.trim();
         const filtered = items.filter((item) => TarkovTracker.matchesFilter(item, filterText));
-        const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-        currentPage = Math.min(currentPage, totalPages);
-
-        const startIndex = (currentPage - 1) * pageSize;
-        const visibleItems = filtered.slice(startIndex, startIndex + pageSize);
 
         itemsEl.innerHTML = '';
-        visibleItems.forEach((item) => {
+        resultCountEl.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
+
+        if (!filtered.length) {
+          itemsEl.innerHTML = '<tr><td colspan="4" style="color: var(--muted);">No items match the current search.</td></tr>';
+          return;
+        }
+
+        filtered.forEach((item) => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${item.name || 'Unknown item'}</td>
+            <td>
+              <div class="item-name">
+                <span class="item-dot"></span>
+                <span>${item.name || 'Unknown item'}</span>
+              </div>
+            </td>
             <td>${TarkovTracker.formatPrice(item.basePrice)}</td>
             <td>${TarkovTracker.formatPrice(item.avg24hPrice)}</td>
             <td>${TarkovTracker.formatPrice(item.lastLowPrice)}</td>
           `;
           itemsEl.appendChild(row);
         });
-
-        resultCountEl.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
-        statusEl.textContent = `Showing ${visibleItems.length} of ${filtered.length} matching items (page ${currentPage} of ${totalPages}).`;
       }
 
       async function loadItems() {
-        statusEl.textContent = 'Loading data...';
+        statusEl.textContent = 'Local item directory ready — character fetch remains live.';
         errorEl.textContent = '';
         errorEl.classList.remove('show');
 
-        try {
-          allItems = await TarkovTracker.fetchItems();
-          renderItems(allItems);
-        } catch (error) {
-          console.warn(error instanceof Error ? error.message : 'Unknown fetch error');
-          allItems = TarkovTracker.fallbackItems;
-          renderItems(allItems);
-          const reason = TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown fetch error');
-          errorEl.textContent = `The live Tarkov API is not responding (${reason}). Showing cached fallback data.`;
-          errorEl.classList.add('show');
-        }
+        allItems = [...TarkovTracker.fallbackItems];
+        renderItems(allItems);
       }
 
-      itemFilterEl.addEventListener('input', () => {
-        currentPage = 1;
-        renderItems(allItems);
-      });
-
-      pageSizeEl.addEventListener('change', () => {
-        pageSize = Number(pageSizeEl.value);
-        currentPage = 1;
-        renderItems(allItems);
-      });
-
-      loadButton.addEventListener('click', loadItems);
+      itemFilterEl.addEventListener('input', () => renderItems(allItems));
+      reloadButtonEl.addEventListener('click', loadItems);
       loadItems();
     </script>
   </body>

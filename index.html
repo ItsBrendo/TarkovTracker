@@ -6,314 +6,307 @@
     <title>Tarkov Tracker</title>
     <style>
       :root {
-        --bg: #101820;
-        --panel: #18232d;
-        --text: #eaf2f8;
-        --muted: #a6b9c8;
-        --accent: #7ad7ff;
-        --danger: #ff7f7f;
-        --good: #59d98d;
+        --bg: #0b0f12;
+        --panel: rgba(18, 23, 27, 0.8);
+        --panel-edge: rgba(255,255,255,0.12);
+        --text: #edf3f1;
+        --muted: #9aa8a8;
+        --accent: #dbaf69;
+        --accent-soft: rgba(219,175,105,0.12);
+        --error: #ff8c8c;
       }
 
       * { box-sizing: border-box; }
 
-      body {
+      html, body {
         margin: 0;
-        font-family: Arial, sans-serif;
-        background: linear-gradient(180deg, #0d141c 0%, #101820 100%);
+        min-height: 100%;
+        background:
+          radial-gradient(circle at 50% 18%, rgba(210, 185, 140, 0.12), transparent 16%),
+          linear-gradient(180deg, rgba(4,7,10,0.82), rgba(8,12,15,0.96)),
+          linear-gradient(135deg, #0a1114, #0d1419 50%, #080d11);
         color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
       }
 
-      .container {
-        max-width: 1100px;
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(0,0,0,0.2), transparent 30%, rgba(0,0,0,0.2));
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        width: min(1120px, calc(100vw - 48px));
         margin: 0 auto;
-        padding: 32px 20px;
+        padding: 28px 0 40px;
       }
 
-      h1 {
-        margin: 0 0 24px;
-        font-size: 2rem;
+      .header {
+        text-align: center;
+        margin-bottom: 42px;
       }
 
-      .layout {
+      .header h1 {
+        margin: 0;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        font-size: clamp(2.8rem, 7vw, 8rem);
+        line-height: 0.9;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.9);
+        text-shadow: 0 2px 0 rgba(0,0,0,0.55), 0 0 18px rgba(255,255,255,0.05);
+      }
+
+      .header h1 span {
+        display: block;
+        font-size: 0.34em;
+        letter-spacing: 0.2em;
+        margin-bottom: 10px;
+      }
+
+      .warning {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        max-width: 980px;
+        margin: 0 auto 26px;
+        padding: 16px 18px;
+        border: 1px solid rgba(219,175,105,0.9);
+        background: rgba(219,175,105,0.14);
+        box-shadow: 0 0 0 1px rgba(255,170,84,0.12), 0 18px 38px rgba(0,0,0,0.24);
+      }
+
+      .warning-badge {
         display: grid;
-        grid-template-columns: 1fr 1.4fr;
-        gap: 20px;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #170e07;
+        font-weight: 900;
       }
 
-      .card {
-        background: var(--panel);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px;
-        padding: 18px;
-        box-shadow: 0 8px 22px rgba(0,0,0,0.2);
+      .warning-copy {
+        color: #f1e7cf;
+        line-height: 1.45;
       }
 
-      .card h2 {
-        margin: 0 0 12px;
-        font-size: 1.1rem;
-        color: var(--accent);
+      .warning-copy strong {
+        margin-right: 8px;
       }
 
-      .status {
-        color: var(--muted);
-        min-height: 24px;
-        margin-bottom: 12px;
-      }
-
-      .error {
+      .screen {
         display: none;
-        color: var(--danger);
-        background: rgba(255,127,127,0.08);
-        padding: 10px 12px;
-        border: 1px solid rgba(255,127,127,0.25);
-        border-radius: 8px;
-        margin-bottom: 12px;
+        background: var(--panel);
+        border: 1px solid var(--panel-edge);
+        box-shadow: 0 18px 36px rgba(0,0,0,0.28);
+        padding: 18px 18px 8px;
       }
 
-      .error.visible {
+      .screen.active {
         display: block;
       }
 
-      .list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        gap: 10px;
-      }
-
-      #items-list {
-        max-height: 520px;
-        overflow-y: auto;
-        padding-right: 6px;
-      }
-
-      .list li {
+      .screen-header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         gap: 12px;
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 20px;
       }
 
-      .list strong {
+      .screen-header h2 {
+        margin: 0;
         color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.82rem;
       }
 
-      .muted {
+      .status-label {
         color: var(--muted);
+        font-size: 0.82rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
       }
 
-      @media (max-width: 760px) {
-        .layout {
+      .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 18px;
+      }
+
+      .stat {
+        padding: 12px 14px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.62rem;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        display: block;
+        font-size: clamp(1rem, 2vw, 1.55rem);
+        font-weight: 700;
+      }
+
+      .error-box {
+        display: none;
+        margin-top: 10px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 140, 140, 0.3);
+        background: rgba(255, 140, 140, 0.08);
+        color: #ffd9d9;
+      }
+
+      .error-box.visible {
+        display: block;
+      }
+
+      @media (max-width: 680px) {
+        .profile-grid {
           grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Live Tarkov Data</h1>
-
-      <div class="layout">
-        <section class="card">
-          <h2>Player</h2>
-          <div id="player-status" class="status">Loading player data...</div>
-          <div id="player-error" class="error"></div>
-          <ul id="player-list" class="list"></ul>
-        </section>
-
-        <section class="card">
-          <h2>Items</h2>
-          <div id="items-status" class="status">Loading item data...</div>
-          <div id="items-error" class="error"></div>
-          <ul id="items-list" class="list"></ul>
-        </section>
+    <div class="shell">
+      <div class="header">
+        <h1><span>Beta Testing</span>Escape From Tarkov</h1>
       </div>
+
+      <div class="warning">
+        <div class="warning-badge">!</div>
+        <div class="warning-copy">
+          <strong>Attention!</strong>
+          This is a Beta version of "Escape from Tarkov". This Beta version doesn't represent the final quality of the product. Thank you for your understanding and support. Good luck!
+        </div>
+      </div>
+
+      <section id="page-character" class="screen active">
+        <div class="screen-header">
+          <h2>Character</h2>
+          <div id="player-status" class="status-label">Loading profile...</div>
+        </div>
+
+        <div id="player-error" class="error-box"></div>
+        <div id="player-grid" class="profile-grid"></div>
+      </section>
     </div>
 
     <script src="shared.js"></script>
     <script>
-      const API_URL = 'https://api.tarkov.dev/graphql';
-      const PROXY_URL = 'https://tarkovtracker.brendob99.workers.dev';
+      const playerStatusEl = document.getElementById('player-status');
+      const playerErrorEl = document.getElementById('player-error');
+      const playerGridEl = document.getElementById('player-grid');
 
-      const statusEl = document.getElementById('status');
-      const errorEl = document.getElementById('error');
-      const itemsEl = document.getElementById('items');
-      const loadButton = document.getElementById('loadButton');
-
-      function showError(el, message) {
-        el.textContent = message;
-        el.classList.add('visible');
+      function setPage(pageName) {
+        const validPages = ['character'];
+        const safePage = validPages.includes(pageName) ? pageName : 'character';
+        const pages = document.querySelectorAll('.screen');
+        pages.forEach((page) => page.classList.toggle('active', page.id === 'page-' + safePage));
       }
 
-      function clearError(el) {
-        el.textContent = '';
-        el.classList.remove('visible');
+      function readPageFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const requestedPage = params.get('page') || 'character';
+        return requestedPage;
       }
 
-      function renderPlayerSummary(data) {
-        playerListEl.innerHTML = '';
+      function showError(message) {
+        playerErrorEl.textContent = message;
+        playerErrorEl.classList.add('visible');
+      }
+
+      function clearError() {
+        playerErrorEl.textContent = '';
+        playerErrorEl.classList.remove('visible');
+      }
+
+      function renderPlayer(data) {
+        playerGridEl.innerHTML = '';
 
         if (!data) {
-          playerListEl.innerHTML = '<li><span class="muted">No player data available.</span></li>';
+          playerGridEl.innerHTML = '<div class="stat"><span class="stat-label">Profile</span><span class="stat-value">Unavailable</span></div>';
           return;
         }
 
-        const rows = [
+        const stats = [
           ['Nickname', data.nickname || 'Unknown'],
           ['Side', data.side || 'Unknown'],
           ['Experience', Number(data.experience || 0).toLocaleString()],
-          ['PMC Sessions', Number(data.pmcSessions || 0)],
-          ['PMC Kills', Number(data.pmcKills || 0)],
-          ['PMC Deaths', Number(data.pmcDeaths || 0)],
-          ['PMC Survived', Number(data.pmcSurvived || 0)],
-          ['Scav Kills', Number(data.scavKills || 0)],
-          ['Playtime', `${Number(data.totalPlaytimeSeconds || 0)} sec`],
+          ['PMC Kills', Number(data.pmcKills || 0).toLocaleString()],
+          ['PMC Deaths', Number(data.pmcDeaths || 0).toLocaleString()],
+          ['Battles', Number(data.pmcSessions || 0).toLocaleString()],
+          ['Playtime', `${Number(data.totalPlaytimeSeconds || 0).toLocaleString()} sec`],
           ['Battle Pass', `${Number(data.battlePassCompleted || 0)}/${Number(data.battlePassTotal || 0)}`]
         ];
 
-        rows.forEach(([label, value]) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
-          playerListEl.appendChild(li);
+        stats.forEach(([label, value]) => {
+          const stat = document.createElement('div');
+          stat.className = 'stat';
+          stat.innerHTML = `
+            <span class="stat-label">${label}</span>
+            <span class="stat-value">${value}</span>
+          `;
+          playerGridEl.appendChild(stat);
         });
       }
 
-      async function loadPlayer() {
+      async function loadCharacter() {
         const params = new URLSearchParams(window.location.search);
         const accountId = params.get('accountId') || '1192376';
         const gameMode = params.get('gameMode') || 'pve';
         const token = params.get('token') || '';
 
-        const workerUrl = `${TarkovTracker.PROXY_URL}/player?accountId=${encodeURIComponent(accountId)}&gameMode=${encodeURIComponent(gameMode)}`;
+        const currentPage = readPageFromUrl();
+        setPage(currentPage);
 
         if (!token) {
-          playerStatusEl.textContent = 'Waiting for private player token.';
-          showError(playerErrorEl, 'Player data unavailable: add ?accountId=1192376&gameMode=pve&token=YOUR_TOKEN to the URL.');
+          playerStatusEl.textContent = 'Token missing';
+          renderPlayer({
+            nickname: 'KillaFromKmart',
+            side: 'Usec',
+            experience: 4324835,
+            pmcKills: 1487,
+            pmcDeaths: 51,
+            pmcSessions: 192,
+            totalPlaytimeSeconds: 10783099,
+            battlePassCompleted: 19,
+            battlePassTotal: 53
+          });
           return;
         }
 
         try {
-          playerStatusEl.textContent = 'Loading player data...';
-          clearError(playerErrorEl);
-
-          const response = await fetch(`${workerUrl}&token=${encodeURIComponent(token)}`, {
-            headers: {
-              Accept: 'application/json'
-            }
-          });
-
-          const payload = await response.json();
-
-          if (!response.ok || !payload?.data) {
-            throw new Error(payload?.error || 'Player fetch failed.');
-          }
-
-          playerStatusEl.textContent = 'Player loaded.';
-          renderPlayerSummary(payload.data);
+          playerStatusEl.textContent = 'Loading profile...';
+          clearError();
+          const player = await TarkovTracker.fetchPlayerSummary(accountId, gameMode, token);
+          if (!player) throw new Error('Unable to load private character data.');
+          renderPlayer(player);
+          playerStatusEl.textContent = 'Profile synced';
         } catch (error) {
-          playerStatusEl.textContent = 'Player data unavailable.';
-          showError(playerErrorEl, error instanceof Error ? error.message : 'Unknown player fetch error.');
-          renderPlayerSummary(null);
+          playerStatusEl.textContent = 'Profile unavailable';
+          showError(error instanceof Error ? error.message : 'Unknown profile error');
+          renderPlayer(null);
         }
       }
 
-      function displayItemName(item) {
-        const rawName = typeof item?.name === 'string' ? item.name.trim() : '';
-        const normalizedName = typeof item?.normalizedName === 'string' ? item.normalizedName.trim() : '';
-
-        if (rawName && !/^[0-9a-f]{24}(?:\s+(?:Name|ShortName))?$/i.test(rawName)) {
-          return rawName;
-        }
-
-        if (normalizedName) {
-          return normalizedName
-            .split(/[-_]+/)
-            .filter(Boolean)
-            .map((part) => {
-              if (part.toLowerCase() === 'x' || /^\d+x\d+$/i.test(part)) {
-                return part.toUpperCase();
-              }
-              if (/^\d+$/i.test(part)) {
-                return part;
-              }
-              return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-            })
-            .join(' ');
-        }
-
-        return rawName || 'Unknown item';
-      }
-
-      function renderItems(items) {
-        itemsListEl.innerHTML = '';
-
-        if (!items.length) {
-          itemsListEl.innerHTML = '<li><span class="muted">No item data returned.</span></li>';
-          return;
-        }
-
-        items.forEach((item) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span>${displayItemName(item)}</span><strong>${TarkovTracker.formatPrice(item.basePrice ?? item.avg24hPrice ?? item.lastLowPrice)}</strong>`;
-          itemsListEl.appendChild(li);
-        });
-      }
-
-      function renderItems(items) {
-        itemsEl.innerHTML = '';
-
-        items.forEach((item) => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${item.name || 'Unknown item'}</td>
-            <td>${formatPrice(item.basePrice)}</td>
-            <td>${formatPrice(item.avg24hPrice)}</td>
-            <td>${formatPrice(item.lastLowPrice)}</td>
-          `;
-          itemsEl.appendChild(row);
-        });
-      }
-
-      async function loadItems() {
-        statusEl.textContent = 'Loading data...';
-        clearError();
-        itemsEl.innerHTML = '';
-
-        try {
-          const items = await fetchTarkovData();
-
-          if (!items.length) {
-            statusEl.textContent = 'No items returned.';
-            return;
-          }
-
-          items.forEach((item) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-              <td>${item.name || 'Unknown item'}</td>
-              <td>${formatPrice(item.basePrice)}</td>
-              <td>${formatPrice(item.avg24hPrice)}</td>
-              <td>${formatPrice(item.lastLowPrice)}</td>
-            `;
-            itemsEl.appendChild(row);
-          });
-
-          statusEl.textContent = `Loaded ${items.length} items.`;
-        } catch (error) {
-          console.error(error);
-          statusEl.textContent = 'Data could not be loaded.';
-          setError(
-            'The Tarkov data source is temporarily unavailable or blocked right now. ' +
-            'Please wait a minute and try again.'
-          );
-        }
-      }
-
-      loadPlayer();
-      loadItems();
+      window.addEventListener('popstate', loadCharacter);
+      loadCharacter();
     </script>
   </body>
 </html>
