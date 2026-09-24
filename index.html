@@ -196,14 +196,17 @@
       const playerGridEl = document.getElementById('player-grid');
       const playerRosterEl = document.getElementById('player-roster');
       const selectedPlayerNameEl = document.getElementById('selected-player-name');
-      const turnstileWidgetEl = document.getElementById('turnstile-widget');
-      const TURNSTILE_SITE_KEY = '0x4AAAAAAFCDjJpFe_zy3kpw';
       let turnstileToken = '';
       let selectedPlayer = null;
 
       // Add private community members here with their Tarkov account IDs.
       const COMMUNITY_PLAYERS = [
-        { nickname: 'KillaFromKmart', accountId: '1192376', gameMode: 'pve' }
+        { nickname: 'KillaFromKmart', accountId: '1192376', gameMode: 'pve' },
+        { nickname: 'TagillaFromTemu', accountId: '', gameMode: 'pve' },
+        { nickname: 'GlukharFromGolo', accountId: '', gameMode: 'pve' },
+        { nickname: 'PartisanFrom711', accountId: '', gameMode: 'pve' },
+        { nickname: 'NoxFromNorvinsk', accountId: '', gameMode: 'pve' },
+        { nickname: 'TimmyFr0mTarkov', accountId: '', gameMode: 'pve' }
       ];
 
       function setPage(pageName) {
@@ -339,10 +342,6 @@
 
       window.onTurnstileSuccess = onTurnstileSuccess;
       window.onTurnstileExpired = onTurnstileExpired;
-      turnstileWidgetEl.dataset.sitekey = TURNSTILE_SITE_KEY;
-      turnstileWidgetEl.dataset.callback = 'onTurnstileSuccess';
-      turnstileWidgetEl.dataset['expired-callback'] = 'onTurnstileExpired';
-
       window.addEventListener('popstate', loadCharacter);
       loadCharacter();
     </script>
