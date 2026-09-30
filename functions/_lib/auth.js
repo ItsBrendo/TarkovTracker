@@ -2,7 +2,7 @@ export const ADMIN_USERNAME = 'KillaFromKmart';
 export const DEFAULT_USER_PASSWORD = 'PasswordFromPrapor';
 export const SESSION_COOKIE = 'gg_session';
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
-const PASSWORD_ITERATIONS = 210000;
+const PASSWORD_ITERATIONS = 100000;
 const DUMMY_HASH = `pbkdf2-sha256$${PASSWORD_ITERATIONS}$${'00'.repeat(16)}$${'00'.repeat(32)}`;
 const encoder = new TextEncoder();
 
