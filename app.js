@@ -51,7 +51,18 @@ function setStatus(message, state = 'ready') {
 }
 
 function normalizeName(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getDisplayName(item) {
+  const apiName = String(item.name || '').trim();
+  if (apiName && apiName !== `${item.id} Name`) return apiName;
+
+  return String(item.normalizedName || 'Tarkov item')
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 function getSelectableItems(items) {
@@ -132,6 +143,8 @@ function formatPrice(value) {
 }
 
 function renderItem(item) {
+  const itemName = getDisplayName(item);
+  const shortName = item.shortName === `${item.id} ShortName` ? '' : item.shortName;
   const category = Array.isArray(item.types) && item.types.length ? item.types[0] : 'Tarkov item';
   const size = item.width && item.height ? `${item.width} × ${item.height}` : 'Not listed';
   const weight = item.weight == null ? 'Not listed' : `${formatNumber(item.weight, 2)} kg`;
@@ -144,13 +157,13 @@ function renderItem(item) {
   itemRegion.innerHTML = `
     <article class="item-card">
       <div class="item-art">
-        ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(item.name)}" loading="eager" />` : `<span class="item-art-fallback" aria-hidden="true">?</span>`}
+        ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(itemName)}" loading="eager" />` : `<span class="item-art-fallback" aria-hidden="true">?</span>`}
         <span class="item-index">DAILY DROP / ${getTodayKey().replaceAll('-', '.')}</span>
       </div>
       <div class="item-details">
         <p class="item-category">${escapeHtml(category)}</p>
-        <h2 class="item-name">${escapeHtml(item.name)}</h2>
-        <p class="item-description">${escapeHtml(item.shortName || 'Tarkov item')}</p>
+        <h2 class="item-name">${escapeHtml(itemName)}</h2>
+        <p class="item-description">${escapeHtml(shortName || 'Tarkov item')}</p>
         <div class="item-facts">
           <div class="item-fact"><span class="item-fact-label">Base price</span><span class="item-fact-value">${formatPrice(item.basePrice)}</span></div>
           <div class="item-fact"><span class="item-fact-label">24h average</span><span class="item-fact-value">${formatPrice(item.avg24hPrice)}</span></div>
@@ -271,7 +284,7 @@ trackerRegion.addEventListener('click', (event) => {
 
 resetButton.addEventListener('click', () => {
   if (!currentItem) return;
-  if (!window.confirm(`Reset all counts for ${currentItem.name}?`)) return;
+  if (!window.confirm(`Reset all counts for ${getDisplayName(currentItem)}?`)) return;
   delete trackerData[currentItem.id];
   saveTrackerData();
   renderTracker();
