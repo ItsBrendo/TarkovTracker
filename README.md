@@ -24,12 +24,10 @@ The Cloudflare build log shows a Pages project running `npx wrangler deploy`. Th
 
 Use the repository's GitHub Actions workflow as the single deployment path: it generates the required `items.json`, applies D1 migrations, and runs `npx wrangler@4 pages deploy . --project-name goons-from-gumtree --branch main`. In Cloudflare, remove/disable the separate build command that runs `npx wrangler deploy` (or disconnect the duplicate automatic Git build). Do not replace it with a bare Pages deploy unless that build also generates `items.json` and applies migrations. GitHub Pages hosting itself cannot run these authentication functions; the deployed site must be Cloudflare Pages.
 
-On this Windows PC, PowerShell blocks the `npx.ps1` launcher under the current execution policy. Use `npx.cmd` for commands you run manually in PowerShell, or add `C:\Program Files\nodejs` to PATH and use Command Prompt. The GitHub Actions workflow runs on Linux and correctly continues to use `npx`.
-
-1. Install Wrangler or use `npx.cmd wrangler@4`, then authenticate with `npx.cmd wrangler login`.
-2. Create the Pages project with `npx.cmd wrangler pages project create goons-from-gumtree`.
-3. Create the database with `npx.cmd wrangler d1 create goons-from-gumtree-users`. Copy its database ID into `database_id` in `wrangler.toml`.
-4. Set the bootstrap secret with `npx.cmd wrangler pages secret put ADMIN_PASSWORD --project-name goons-from-gumtree`. Use a unique secret of at least 12 characters. Do not commit it.
+1. Install Wrangler or use `npx wrangler@4`, then authenticate with `npx wrangler login`.
+2. Create the Pages project with `npx wrangler pages project create goons-from-gumtree`.
+3. Create the database with `npx wrangler d1 create goons-from-gumtree-users`. Copy its database ID into `database_id` in `wrangler.toml`.
+4. Set the bootstrap secret with `npx wrangler pages secret put ADMIN_PASSWORD --project-name goons-from-gumtree`. Use a unique secret of at least 12 characters. Do not commit it.
 5. Add GitHub Actions repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The API token needs Cloudflare Pages edit and D1 edit permissions.
 6. Push to `main` or run the deployment workflow. It generates `items.json`, applies pending D1 migrations, then deploys the Pages assets and Functions.
 
@@ -40,8 +38,8 @@ The scheduled workflow refreshes the Tarkov.dev item catalog daily. Account and 
 Create a local `.dev.vars` file with an `ADMIN_PASSWORD` value (at least 12 characters). It is git-ignored. Apply the local migration and start Pages with Wrangler:
 
 ```sh
-npx.cmd wrangler d1 migrations apply goons-from-gumtree-users --local
-npx.cmd wrangler pages dev .
+npx wrangler d1 migrations apply goons-from-gumtree-users --local
+npx wrangler pages dev .
 ```
 
 For a local item preview, generate `items.json` using the same catalog query in `.github/workflows/static.yml`, or deploy and use the generated snapshot. D1 local data is separate from the remote production database.

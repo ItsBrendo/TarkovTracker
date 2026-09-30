@@ -1,7 +1,7 @@
 import { getSession, jsonResponse } from './_lib/auth.js';
 
 const LOGIN_ASSETS = new Set([
-  '/login.html', '/login.css', '/login.js', '/styles.css', '/ambient.js', '/knightbg.png'
+  '/login', '/login.html', '/login.css', '/login.js', '/styles.css', '/ambient.js', '/knightbg.png'
 ]);
 
 export async function onRequest(context) {
