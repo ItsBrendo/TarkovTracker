@@ -6,11 +6,16 @@ function initializeAmbientScene() {
   if (!canvas || !context || !scene) return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let userReducedMotion = localStorage.getItem('tarkov-field-log.reduce-motion.v1') === 'true';
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
   let particles = [];
   let width = 0;
   let height = 0;
   let frame = 0;
+
+  function shouldReduceMotion() {
+    return reducedMotion.matches || userReducedMotion;
+  }
 
   function resize() {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -27,7 +32,7 @@ function initializeAmbientScene() {
       speed: Math.random() * 0.14 + 0.045,
       phase: Math.random() * Math.PI * 2
     }));
-    if (reducedMotion.matches) draw(0, true);
+    if (shouldReduceMotion()) draw(0, true);
   }
 
   function draw(time, still = false) {
@@ -57,26 +62,35 @@ function initializeAmbientScene() {
     frame = window.requestAnimationFrame(animate);
   }
 
-  window.addEventListener('pointermove', (event) => {
-    if (reducedMotion.matches || event.pointerType === 'touch') return;
-    pointer.targetX = (0.5 - event.clientX / width) * 14;
-    pointer.targetY = (0.5 - event.clientY / height) * 10;
-  }, { passive: true });
-  window.addEventListener('resize', resize, { passive: true });
-  reducedMotion.addEventListener('change', () => {
-    window.cancelAnimationFrame(frame);
-    if (reducedMotion.matches) {
+  function updateMotionPreference() {
+    const shouldReduce = shouldReduceMotion();
+    document.body.dataset.reducedMotion = String(shouldReduce);
+    if (shouldReduce) {
+      window.cancelAnimationFrame(frame);
+      frame = 0;
       pointer.targetX = 0;
       pointer.targetY = 0;
       scene.style.setProperty('--parallax-x', '0px');
       scene.style.setProperty('--parallax-y', '0px');
       draw(0, true);
-    } else {
+    } else if (!frame) {
       frame = window.requestAnimationFrame(animate);
     }
+  }
+
+  window.addEventListener('pointermove', (event) => {
+    if (shouldReduceMotion() || event.pointerType === 'touch') return;
+    pointer.targetX = (0.5 - event.clientX / width) * 14;
+    pointer.targetY = (0.5 - event.clientY / height) * 10;
+  }, { passive: true });
+  window.addEventListener('resize', resize, { passive: true });
+  reducedMotion.addEventListener('change', updateMotionPreference);
+  document.addEventListener('field-log:motion-preference', (event) => {
+    userReducedMotion = Boolean(event.detail);
+    updateMotionPreference();
   });
   resize();
-  if (!reducedMotion.matches) frame = window.requestAnimationFrame(animate);
+  updateMotionPreference();
 }
 
 initializeAmbientScene();

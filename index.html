@@ -31,74 +31,142 @@
         </a>
         <div class="topbar-actions">
           <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> <span id="signed-in-as">USEC TASK FORCE // GOONS</span></div>
-          <button class="text-button logout-button" id="logout-button" type="button">Sign out</button>
+          <div class="user-menu">
+            <button class="menu-button" id="menu-button" type="button" aria-label="Open navigation and settings" aria-controls="user-menu-panel" aria-expanded="false">
+              <span class="menu-gear" aria-hidden="true">⚙</span>
+              <span class="menu-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+            </button>
+            <div class="menu-popover" id="user-menu-panel" hidden>
+              <p class="menu-caption">OPERATOR // <span id="menu-username">LOADING</span></p>
+              <button class="menu-item" type="button" data-view-target="profile">Operator profile</button>
+              <button class="menu-item" type="button" data-view-target="daily">Daily item</button>
+              <button class="menu-item" type="button" data-view-target="settings">Settings</button>
+              <button class="menu-item" id="admin-menu-button" type="button" data-view-target="settings" hidden>User management</button>
+              <button class="menu-item menu-signout" id="logout-button" type="button">Sign out</button>
+            </div>
+          </div>
         </div>
       </header>
 
       <main>
-        <section class="intro" aria-labelledby="page-title">
-          <div>
-            <p class="eyebrow"><span class="eyebrow-rule"></span> DAILY ROTATION <span id="today-date"></span></p>
-            <h1 id="page-title">Goons from Gumtree<span class="title-period">.</span></h1>
-            <p class="intro-copy">Daily item. Keep the field record.</p>
-          </div>
-          <button class="button button-quiet" id="reroll-button" type="button" disabled>
-            <span class="reroll-icon" aria-hidden="true">↻</span> New item
-          </button>
-        </section>
-
         <div class="status-strip" id="app-status" role="status" aria-live="polite">
           <span class="status-indicator" aria-hidden="true"></span>
           <span id="status-text">Connecting to Tarkov.dev...</span>
         </div>
 
-        <section class="content-grid" aria-label="Daily item and tracker">
-          <div id="item-region" class="item-region" aria-live="polite" aria-busy="true">
-            <div class="loading-panel">
-              <span class="loading-mark" aria-hidden="true"></span>
-              <p>SCANNING ITEM DATABASE</p>
+        <nav class="view-tabs" role="tablist" aria-label="Field log sections">
+          <button class="view-tab" id="tab-profile" role="tab" type="button" aria-controls="profile-view" aria-selected="true" data-view-target="profile">Operator profile</button>
+          <button class="view-tab" id="tab-daily" role="tab" type="button" aria-controls="daily-view" aria-selected="false" data-view-target="daily" tabindex="-1">Daily item</button>
+          <button class="view-tab" id="tab-settings" role="tab" type="button" aria-controls="settings-view" aria-selected="false" data-view-target="settings" tabindex="-1">Settings</button>
+        </nav>
+
+        <section class="app-view profile-view" id="profile-view" role="tabpanel" aria-labelledby="tab-profile" data-view-panel="profile">
+          <div class="operator-hero">
+            <div class="operator-avatar" id="operator-avatar" aria-hidden="true">GG</div>
+            <div class="operator-copy">
+              <p class="eyebrow"><span class="eyebrow-rule"></span> OPERATOR FILE // PERSONNEL</p>
+              <h1 id="profile-name">Field operator<span class="title-period">.</span></h1>
+              <p class="intro-copy"><span id="profile-username">Waiting for session</span><span class="operator-divider">/</span><span id="profile-role">USEC TASK FORCE</span></p>
             </div>
+            <div class="operator-stamp"><span class="live-dot" aria-hidden="true"></span><span>ACTIVE<br />PERSONNEL</span></div>
           </div>
-          <section class="tracker-panel" aria-labelledby="tracker-title">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">PERSONAL RECORD</p>
-                <h2 id="tracker-title">Field tracker</h2>
+
+          <section class="operator-stats" aria-label="Your tracker record">
+            <article class="operator-stat"><span class="operator-stat-label">Items logged</span><strong id="stat-items">0</strong><span class="operator-stat-note">unique catalog items</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Found</span><strong id="stat-found">0</strong><span class="operator-stat-note">recorded finds</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Kills</span><strong id="stat-kills">0</strong><span class="operator-stat-note">field record</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Raids survived</span><strong id="stat-survived">0</strong><span class="operator-stat-note">logged by you</span></article>
+          </section>
+
+          <div class="profile-grid">
+            <section class="profile-panel profile-daily" aria-labelledby="profile-daily-title">
+              <div class="panel-heading">
+                <div><p class="eyebrow">TARKOV.DEV // DAILY ROTATION</p><h2 id="profile-daily-title">Today's field item</h2></div>
+                <span class="record-tag" id="profile-item-size">API</span>
               </div>
-              <span class="record-tag">LOCAL</span>
-            </div>
-            <div id="tracker-region" class="tracker-region">
-              <p class="tracker-empty">Your counts for today's item will appear here.</p>
-            </div>
-            <div class="tracker-footer">
-              <span>Saved on this device</span>
-              <button class="text-button" id="reset-button" type="button" disabled>Reset counts</button>
-            </div>
+              <div class="profile-item-content" id="profile-item-content">
+                <span class="loading-mark" aria-hidden="true"></span>
+                <p>Pulling item intelligence...</p>
+              </div>
+              <button class="button profile-action" type="button" data-view-target="daily">Open daily item <span aria-hidden="true">→</span></button>
+            </section>
+            <section class="profile-panel profile-catalog" aria-labelledby="catalog-title">
+              <div class="panel-heading">
+                <div><p class="eyebrow">LIVE CATALOG // TARKOV.DEV</p><h2 id="catalog-title">Market signal</h2></div>
+                <span class="live-dot" aria-label="Catalog loaded"></span>
+              </div>
+              <div class="market-signal">
+                <span class="market-label">ITEMS INDEXED</span>
+                <strong id="catalog-count">--</strong>
+                <span class="market-label">HIGHEST BASE VALUE</span>
+                <span class="market-item-name" id="catalog-top-item">Awaiting catalog</span>
+                <span class="market-value" id="catalog-top-value">--</span>
+              </div>
+              <a class="catalog-link" href="https://tarkov.dev" target="_blank" rel="noreferrer">SOURCE: TARKOV.DEV ↗</a>
+            </section>
+            <section class="profile-panel profile-ledger" aria-labelledby="ledger-title">
+              <div class="panel-heading">
+                <div><p class="eyebrow">PERSONAL RECORD // THIS DEVICE</p><h2 id="ledger-title">Field ledger</h2></div>
+                <span class="record-tag">LOCAL</span>
+              </div>
+              <div class="ledger-highlight" id="ledger-highlight"><span>No tracked items yet.</span></div>
+              <button class="text-button" type="button" data-view-target="daily">Open today's tracker →</button>
+            </section>
           </section>
         </section>
 
-        <section class="admin-panel" id="admin-panel" aria-labelledby="admin-title" hidden>
-          <div class="panel-heading">
+        <section class="app-view daily-view" id="daily-view" role="tabpanel" aria-labelledby="tab-daily" data-view-panel="daily" hidden>
+          <section class="intro" aria-labelledby="page-title">
             <div>
-              <p class="eyebrow">PERSONNEL // ACCESS CONTROL</p>
-              <h2 id="admin-title">Manage users</h2>
+              <p class="eyebrow"><span class="eyebrow-rule"></span> DAILY ROTATION <span id="today-date"></span></p>
+              <h1 id="page-title">Daily field item<span class="title-period">.</span></h1>
+              <p class="intro-copy">One item. Keep the record.</p>
             </div>
-            <span class="record-tag">ADMIN</span>
+            <button class="button button-quiet" id="reroll-button" type="button" disabled>
+              <span class="reroll-icon" aria-hidden="true">↻</span> New item
+            </button>
           </div>
-          <form class="admin-create-form" id="admin-create-form">
-            <label>Username<input name="username" type="text" autocomplete="off" minlength="2" maxlength="32" pattern="[A-Za-z0-9_.\x2d]+" required /></label>
-            <label>Role<select name="role"><option value="user">Standard user</option><option value="admin">Administrator</option></select></label>
-            <label>Initial password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Default for standard users" /></label>
-            <button class="button" type="submit">Add user</button>
-          </form>
-          <p class="admin-hint">Leave the password blank for a standard user to use PasswordFromPrapor. Administrator accounts require a custom password.</p>
-          <p class="admin-message" id="admin-message" role="status" aria-live="polite"></p>
-          <div class="admin-table-wrap">
-            <table class="admin-table">
-              <thead><tr><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Change password</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
-              <tbody id="admin-users"></tbody>
-            </table>
+          <section class="content-grid" aria-label="Daily item and tracker">
+            <div id="item-region" class="item-region" aria-live="polite" aria-busy="true">
+              <div class="loading-panel"><span class="loading-mark" aria-hidden="true"></span><p>SCANNING ITEM DATABASE</p></div>
+            </div>
+            <section class="tracker-panel" aria-labelledby="tracker-title">
+              <div class="panel-heading">
+                <div><p class="eyebrow">PERSONAL RECORD</p><h2 id="tracker-title">Field tracker</h2></div>
+                <span class="record-tag">LOCAL</span>
+              </div>
+              <div id="tracker-region" class="tracker-region"><p class="tracker-empty">Your counts for today's item will appear here.</p></div>
+              <div class="tracker-footer"><span>Saved on this device</span><button class="text-button" id="reset-button" type="button" disabled>Reset counts</button></div>
+            </section>
           </div>
+        </section>
+
+        <section class="app-view settings-view" id="settings-view" role="tabpanel" aria-labelledby="tab-settings" data-view-panel="settings" hidden>
+          <div class="section-intro">
+            <p class="eyebrow"><span class="eyebrow-rule"></span> OPERATOR // PREFERENCES</p>
+            <h1>Field settings<span class="title-period">.</span></h1>
+            <p class="intro-copy">Account details and display preferences.</p>
+          </div>
+          <section class="settings-panel" aria-labelledby="account-settings-title">
+            <div class="panel-heading"><div><p class="eyebrow">CURRENT SESSION</p><h2 id="account-settings-title">Account</h2></div><span class="record-tag" id="settings-role">USER</span></div>
+            <dl class="account-details"><div><dt>Username</dt><dd id="settings-username">—</dd></div><div><dt>Role</dt><dd id="settings-role-name">—</dd></div><div><dt>Tracker storage</dt><dd>This browser only</dd></div></dl>
+          </section>
+          <section class="settings-panel motion-panel" aria-labelledby="display-settings-title">
+            <div class="panel-heading"><div><p class="eyebrow">DISPLAY // ACCESSIBILITY</p><h2 id="display-settings-title">Ambient effects</h2></div></div>
+            <label class="setting-toggle" for="motion-toggle"><span><strong>Reduce background motion</strong><small>Pause particles, parallax, and insignia drift.</small></span><input id="motion-toggle" type="checkbox" /></label>
+          </section>
+          <section class="admin-panel" id="admin-panel" aria-labelledby="admin-title" hidden>
+            <div class="panel-heading"><div><p class="eyebrow">PERSONNEL // ACCESS CONTROL</p><h2 id="admin-title">Manage users</h2></div><span class="record-tag">ADMIN</span></div>
+            <form class="admin-create-form" id="admin-create-form">
+              <label>Username<input name="username" type="text" autocomplete="off" minlength="2" maxlength="32" pattern="[A-Za-z0-9_.\x2d]+" required /></label>
+              <label>Role<select name="role"><option value="user">Standard user</option><option value="admin">Administrator</option></select></label>
+              <label>Initial password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Default for standard users" /></label>
+              <button class="button" type="submit">Add user</button>
+            </form>
+            <p class="admin-hint">Leave the password blank for a standard user to use PasswordFromPrapor. Administrator accounts require a custom password.</p>
+            <p class="admin-message" id="admin-message" role="status" aria-live="polite"></p>
+            <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Change password</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead><tbody id="admin-users"></tbody></table></div>
+          </section>
         </section>
 
         <footer class="page-footer">

@@ -13,6 +13,11 @@ const resetButton = document.querySelector('#reset-button');
 const todayDate = document.querySelector('#today-date');
 const logoutButton = document.querySelector('#logout-button');
 const signedInAs = document.querySelector('#signed-in-as');
+const menuButton = document.querySelector('#menu-button');
+const menuPanel = document.querySelector('#user-menu-panel');
+const motionToggle = document.querySelector('#motion-toggle');
+const viewTabs = [...document.querySelectorAll('.view-tab')];
+const viewPanels = [...document.querySelectorAll('[data-view-panel]')];
 
 let catalog = [];
 let currentItem = null;
@@ -50,6 +55,73 @@ function saveTrackerData() {
 function setStatus(message, state = 'ready') {
   statusText.textContent = message;
   statusStrip.dataset.state = state;
+}
+
+function setView(viewName, focusTab = false) {
+  for (const panel of viewPanels) panel.hidden = panel.dataset.viewPanel !== viewName;
+  for (const tab of viewTabs) {
+    const selected = tab.dataset.viewTarget === viewName;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    if (selected && focusTab) tab.focus();
+  }
+  menuPanel.hidden = true;
+  menuButton.setAttribute('aria-expanded', 'false');
+}
+
+function renderProfileItem(item) {
+  const content = document.querySelector('#profile-item-content');
+  const imageUrl = item.imageLink || item.iconLink;
+  const name = getDisplayName(item);
+  const category = Array.isArray(item.types) && item.types.length ? item.types[0] : 'Tarkov item';
+  const dimensions = item.width && item.height ? `${item.width} × ${item.height} CELLS` : 'SIZE NOT LISTED';
+  content.innerHTML = `
+    <div class="profile-item-art">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />` : '<span aria-hidden="true">?</span>'}</div>
+    <div class="profile-item-copy"><span class="profile-item-category">${escapeHtml(category)}</span><strong>${escapeHtml(name)}</strong><span>${escapeHtml(dimensions)}</span><span>${formatPrice(item.basePrice)}</span></div>`;
+  document.querySelector('#profile-item-size').textContent = dimensions;
+}
+
+function renderProfile() {
+  const records = Object.entries(trackerData).map(([id, saved]) => ({
+    id,
+    found: Math.max(0, Number(saved?.found) || 0),
+    kills: Math.max(0, Number(saved?.kills) || 0),
+    deaths: Math.max(0, Number(saved?.deaths) || 0),
+    survived: Math.max(0, Number(saved?.survived) || 0)
+  }));
+  const totals = records.reduce((sum, record) => {
+    for (const key of ['found', 'kills', 'deaths', 'survived']) sum[key] += record[key];
+    return sum;
+  }, { found: 0, kills: 0, deaths: 0, survived: 0 });
+  const tracked = records.filter((record) => record.found + record.kills + record.deaths + record.survived > 0);
+
+  document.querySelector('#stat-items').textContent = formatNumber(tracked.length);
+  document.querySelector('#stat-found').textContent = formatNumber(totals.found);
+  document.querySelector('#stat-kills').textContent = formatNumber(totals.kills);
+  document.querySelector('#stat-survived').textContent = formatNumber(totals.survived);
+
+  const mostLogged = [...tracked].sort((left, right) =>
+    (right.found + right.kills + right.deaths + right.survived)
+      - (left.found + left.kills + left.deaths + left.survived))[0];
+  const ledger = document.querySelector('#ledger-highlight');
+  if (!mostLogged) {
+    ledger.innerHTML = '<span>No tracked items yet.</span><small>Start with today\'s rotation to build your record.</small>';
+  } else {
+    const item = catalog.find((entry) => entry.id === mostLogged.id);
+    ledger.innerHTML = `<strong>${escapeHtml(item ? getDisplayName(item) : mostLogged.id)}</strong><span>${formatNumber(mostLogged.found)} FOUND <i>/</i> ${formatNumber(mostLogged.kills)} KILLS <i>/</i> ${formatNumber(mostLogged.survived)} SURVIVED</span>`;
+  }
+
+  if (currentItem) renderProfileItem(currentItem);
+  if (catalog.length) {
+    const highestValue = catalog.reduce((best, item) => {
+      const price = Number(item.basePrice);
+      if (!Number.isFinite(price)) return best;
+      return !best || price > Number(best.basePrice) ? item : best;
+    }, null);
+    document.querySelector('#catalog-count').textContent = formatNumber(catalog.length);
+    document.querySelector('#catalog-top-item').textContent = highestValue ? getDisplayName(highestValue) : 'No value data';
+    document.querySelector('#catalog-top-value').textContent = highestValue ? formatPrice(highestValue.basePrice) : '--';
+  }
 }
 
 function normalizeName(value) {
@@ -218,6 +290,7 @@ function renderCurrentItem(item) {
   currentItem = item;
   renderItem(item);
   renderTracker();
+  renderProfile();
   rerollButton.disabled = catalog.length < 2;
   resetButton.disabled = false;
   const updated = catalogGeneratedAt ? ` / SNAPSHOT ${catalogGeneratedAt.slice(0, 10)}` : '';
@@ -282,6 +355,7 @@ trackerRegion.addEventListener('click', (event) => {
   trackerData[currentItem.id] = counts;
   saveTrackerData();
   renderTracker();
+  renderProfile();
 });
 
 resetButton.addEventListener('click', () => {
@@ -290,6 +364,51 @@ resetButton.addEventListener('click', () => {
   delete trackerData[currentItem.id];
   saveTrackerData();
   renderTracker();
+  renderProfile();
+});
+
+document.addEventListener('click', (event) => {
+  const viewButton = event.target.closest('[data-view-target]');
+  if (viewButton) {
+    setView(viewButton.dataset.viewTarget);
+    return;
+  }
+  if (!event.target.closest('.user-menu')) {
+    menuPanel.hidden = true;
+    menuButton.setAttribute('aria-expanded', 'false');
+  }
+});
+
+menuButton.addEventListener('click', () => {
+  menuPanel.hidden = !menuPanel.hidden;
+  menuButton.setAttribute('aria-expanded', String(!menuPanel.hidden));
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !menuPanel.hidden) {
+    menuPanel.hidden = true;
+    menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.focus();
+  }
+});
+
+viewTabs.forEach((tab, index) => tab.addEventListener('keydown', (event) => {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const nextIndex = event.key === 'Home' ? 0
+    : event.key === 'End' ? viewTabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : viewTabs.length - 1)) % viewTabs.length;
+  setView(viewTabs[nextIndex].dataset.viewTarget, true);
+}));
+
+motionToggle.checked = localStorage.getItem('tarkov-field-log.reduce-motion.v1') === 'true';
+motionToggle.addEventListener('change', () => {
+  try {
+    localStorage.setItem('tarkov-field-log.reduce-motion.v1', String(motionToggle.checked));
+  } catch {
+    setStatus('DISPLAY PREFERENCE COULD NOT BE SAVED', 'error');
+  }
+  document.dispatchEvent(new CustomEvent('field-log:motion-preference', { detail: motionToggle.checked }));
 });
 
 logoutButton.addEventListener('click', async () => {
@@ -311,6 +430,15 @@ async function startApp() {
     if (!response.ok) throw new Error('The authentication service is unavailable.');
     const { user } = await response.json();
     signedInAs.textContent = user.username;
+    document.querySelector('#menu-username').textContent = user.username.toUpperCase();
+    document.querySelector('#profile-name').textContent = user.username;
+    document.querySelector('#profile-username').textContent = `SIGNED IN AS ${user.username.toUpperCase()}`;
+    document.querySelector('#profile-role').textContent = user.role === 'admin' ? 'ADMINISTRATOR // GOONS' : 'USEC TASK FORCE // GOONS';
+    document.querySelector('#operator-avatar').textContent = user.username.slice(0, 2).toUpperCase();
+    document.querySelector('#settings-username').textContent = user.username;
+    document.querySelector('#settings-role-name').textContent = user.role === 'admin' ? 'Administrator' : 'Standard user';
+    document.querySelector('#settings-role').textContent = user.role.toUpperCase();
+    document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
     loadCatalog();
   } catch (error) {
     showLoadError(error instanceof Error ? error : new Error('The authentication service is unavailable.'));
