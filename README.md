@@ -11,9 +11,12 @@ A static, single-page Tarkov item tracker. It loads an item catalog from the Tar
 │       └── static.yml
 ├── app.js
 ├── index.html
+├── knightbg.png
 ├── styles.css
 └── README.md
 ```
+
+The page uses `knightbg.png` as a blurred, darkened ambient scene with restrained pointer parallax, canvas particles, and low-contrast Unheard/Goons insignia. The item artwork uses a subtle dual-scale inventory grid; ambient animation respects the reduced-motion setting.
 
 The Pages workflow downloads `https://json.tarkov.dev/regular/items`, trims the response into `items.json`, and publishes both with GitHub Pages. The browser only fetches this same-origin static file, so it does not make a cross-origin request to Tarkov.dev. No server or runtime dependency is required.
 

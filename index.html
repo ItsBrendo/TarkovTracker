@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#111411" />
-    <meta name="description" content="A daily Escape from Tarkov item and personal field log." />
-    <title>Item of the Day | Tarkov Field Log</title>
+    <meta name="theme-color" content="#101516" />
+    <meta name="description" content="An Unheard and Goons daily item log for Escape from Tarkov." />
+    <title>Unheard // Goons | Tarkov Field Log</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -13,13 +13,21 @@
     <script src="app.js" defer></script>
   </head>
   <body>
+    <!-- Ambient faction scene: blurred background, particles, and insignia. -->
+    <div class="ambient-scene" aria-hidden="true">
+      <div class="ambient-image"></div>
+      <div class="ambient-wash"></div>
+      <canvas class="ambient-particles"></canvas>
+      <div class="faction-mark unheard-mark"><span>U</span><small>THE UNHEARD</small></div>
+      <div class="faction-mark goons-mark"><span>///</span><small>USEC // GOONS</small></div>
+    </div>
     <div class="page-frame">
       <header class="topbar">
-        <a class="brand" href="./" aria-label="Tarkov Field Log home">
-          <span class="brand-mark" aria-hidden="true">TF</span>
-          <span class="brand-name">TARKOV <span>FIELD LOG</span></span>
+        <a class="brand" href="./" aria-label="Unheard Goons field log home">
+          <span class="brand-mark" aria-hidden="true">UG</span>
+          <span class="brand-name">TARKOV <span>UNHEARD // GOONS</span></span>
         </a>
-        <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> PERSONAL RAID RECORD</div>
+        <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> USEC TASK FORCE // GOONS</div>
       </header>
 
       <main>
