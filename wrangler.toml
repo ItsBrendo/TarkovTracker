@@ -5,5 +5,5 @@ pages_build_output_dir = "."
 [[d1_databases]]
 binding = "DB"
 database_name = "goons-from-gumtree-users"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e8fa1160-4937-4d62-8b10-1ad6be7150df"
 migrations_dir = "migrations"
