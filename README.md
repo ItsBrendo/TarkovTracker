@@ -46,4 +46,4 @@ For a local item preview, generate `items.json` using the same catalog query in 
 
 ## Tracker data
 
-Daily selection and found, kill, death, and raid-survived counts remain in the visitor's browser `localStorage`, preserving the existing tracker behavior. User credentials, roles, and sessions are stored server-side in D1..
+Daily selection and found, kill, death, and raid-survived counts remain in the visitor's browser `localStorage`, preserving the existing tracker behavior. User credentials, roles, and sessions are stored server-side in D1...
