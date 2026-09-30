@@ -1,0 +1,18 @@
+query DailyItemCatalog {
+  items(limit: 2000) {
+    id
+    name
+    shortName
+    normalizedName
+    iconLink
+    imageLink
+    wikiLink
+    types
+    width
+    height
+    weight
+    basePrice
+    avg24hPrice
+    lastLowPrice
+  }
+}

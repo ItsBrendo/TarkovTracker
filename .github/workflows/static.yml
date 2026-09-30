@@ -9,6 +9,10 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  # Refresh the same-origin catalog once per day.
+  schedule:
+    - cron: "23 6 * * *"
+
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
@@ -31,6 +35,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Fetch Tarkov.dev item catalog
+        env:
+          TARKOV_API_URL: https://api.tarkov.dev/graphql
+        run: |
+          request=$(jq -n --rawfile query items.graphql '{query: $query}')
+          response=$(curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            -H 'Content-Type: application/json' \
+            --data "$request" "$TARKOV_API_URL")
+          if ! printf '%s' "$response" | jq -e '.errors == null and (.data.items | type == "array" and length > 0)' >/dev/null; then
+            printf '%s' "$response" | jq -r '.errors[0].message // "Tarkov.dev returned no items."' >&2
+            exit 1
+          fi
+          printf '%s' "$response" | jq '{generatedAt: (now | todateiso8601), items: .data.items}' > items.json
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

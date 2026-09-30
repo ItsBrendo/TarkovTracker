@@ -10,16 +10,17 @@ A static, single-page Tarkov item tracker. It loads an item catalog from the Tar
 │   └── workflows/
 │       └── static.yml
 ├── app.js
+├── items.graphql
 ├── index.html
 ├── styles.css
 └── README.md
 ```
 
-The existing Pages workflow deploys the repository root as a static site. No build step, package manager, backend, or runtime dependencies are required.
+The Pages workflow runs a GraphQL request from GitHub Actions and writes the result to `items.json`. The browser only fetches this same-origin static file, so it does not make a cross-origin request to Tarkov.dev. No server or runtime dependency is required.
 
 ## GraphQL query
 
-The query is defined as `GRAPHQL_QUERY` in `app.js`:
+The query is stored in `items.graphql` and is sent by the Pages workflow:
 
 ```graphql
 query DailyItemCatalog {
@@ -42,7 +43,7 @@ query DailyItemCatalog {
 }
 ```
 
-The browser chooses one random item from the returned catalog and remembers that selection for the UTC date. The **New item** button rerolls and saves a different selection for the rest of that day.
+The browser chooses one random item from the generated catalog and remembers that selection for the UTC date. The **New item** button rerolls and saves a different selection for the rest of that day.
 
 ## Configure an item list
 
@@ -56,9 +57,9 @@ Leave the array empty to select from the full returned catalog. Matching is case
 
 ## Run locally
 
-Open `index.html` in a browser, or serve the repository root with any static file server. The app posts the query directly to `https://api.tarkov.dev/graphql` and shows loading, API error, and retry states.
+The Pages workflow creates `items.json` during deployment. To preview the site locally, serve the repository root after generating that file with the same GraphQL query. The browser displays loading, catalog error, and retry states when the file is missing or unavailable.
 
-**Browser access note:** GitHub Pages cannot proxy API requests. Live item loading therefore depends on Tarkov.dev allowing cross-origin requests from the browser (CORS) and the API being available. If either condition is not met, the app explains the problem instead of substituting made-up data. A backend or proxy would be needed to work around an upstream CORS restriction, and this project intentionally does not include one.
+GitHub Actions fetches a fresh catalog on pushes to `main`, manual workflow runs, and once daily. If Tarkov.dev is unavailable during deployment, the workflow fails rather than publishing a broken or fabricated catalog; rerun it when the API is back.
 
 Tracker counts and the selected daily item are stored in `localStorage` on the current device and browser. Clearing browser storage removes them.
 
@@ -68,4 +69,4 @@ Tracker counts and the selected daily item are stored in `localStorage` on the c
 2. In **Settings → Pages**, select **GitHub Actions** as the build and deployment source.
 3. Push to `main` or run **Deploy static content to Pages** from the Actions tab.
 
-The included `.github/workflows/static.yml` uploads the root directory directly; there is no build command to configure.
+The included `.github/workflows/static.yml` fetches the catalog, then uploads the root directory to Pages. The browser request is same-origin, so Tarkov.dev's browser CORS policy no longer blocks the app.
