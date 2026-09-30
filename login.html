@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101516" />
+    <meta name="description" content="Secure access to Goons from Gumtree." />
+    <title>Sign in | Goons from Gumtree</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="login.css" />
+    <script src="ambient.js" defer></script>
+    <script src="login.js" defer></script>
+  </head>
+  <body>
+    <!-- Shared ambient faction scene. -->
+    <div class="ambient-scene" aria-hidden="true">
+      <div class="ambient-image"></div>
+      <div class="ambient-wash"></div>
+      <canvas class="ambient-particles"></canvas>
+      <div class="faction-mark unheard-mark"><span>U</span><small>THE UNHEARD</small></div>
+      <div class="faction-mark goons-mark"><span>///</span><small>USEC // GOONS</small></div>
+    </div>
+    <div class="page-frame login-frame">
+      <header class="topbar">
+        <a class="brand" href="login.html" aria-label="Goons from Gumtree sign in">
+          <span class="brand-mark" aria-hidden="true">GG</span>
+          <span class="brand-name">GOONS <span>FROM GUMTREE</span></span>
+        </a>
+        <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> RESTRICTED ACCESS</div>
+      </header>
+
+      <main class="login-main">
+        <section class="login-panel" aria-labelledby="login-title">
+          <p class="eyebrow"><span class="eyebrow-rule"></span> USEC TASK FORCE // PERSONNEL CHECK</p>
+          <h1 id="login-title">Identify yourself<span class="title-period">.</span></h1>
+          <p class="login-intro">Authorized personnel only. Credentials are verified securely.</p>
+          <form id="login-form" novalidate>
+            <div id="username-step" class="login-step">
+              <label class="login-label" for="username">Username</label>
+              <input id="username" name="username" type="text" autocomplete="username" minlength="2" maxlength="32" pattern="[A-Za-z0-9_.\x2d]+" required autofocus />
+              <button class="button login-submit" type="submit">Continue <span aria-hidden="true">→</span></button>
+            </div>
+            <div id="password-step" class="login-step" hidden>
+              <div class="password-heading">
+                <label class="login-label" id="password-label" for="password">Password</label>
+                <button class="text-button" id="back-button" type="button">Change username</button>
+              </div>
+              <p class="login-account" id="login-account"></p>
+              <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required />
+              <button class="button login-submit" type="submit">Enter field log <span aria-hidden="true">→</span></button>
+            </div>
+            <p class="login-message" id="login-message" role="status" aria-live="polite"></p>
+          </form>
+          <div class="login-footnote"><span class="status-indicator" aria-hidden="true"></span> SESSION ENCRYPTED // USER LIST NOT PUBLIC</div>
+        </section>
+      </main>
+      <footer class="page-footer"><span>GOONS FROM GUMTREE</span><span>UNHEARD TASK FORCE // PERSONNEL ACCESS</span></footer>
+    </div>
+  </body>
+</html>

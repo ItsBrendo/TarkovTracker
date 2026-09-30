@@ -1,1 +1,4 @@
 .wrangler/
+.dev.vars*
+items.json
+api-response.json

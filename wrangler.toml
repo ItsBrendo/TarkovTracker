@@ -1,0 +1,9 @@
+name = "goons-from-gumtree"
+compatibility_date = "2026-09-30"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "goons-from-gumtree-users"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"

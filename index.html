@@ -4,13 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#101516" />
-    <meta name="description" content="An Unheard and Goons daily item log for Escape from Tarkov." />
-    <title>Unheard // Goons | Tarkov Field Log</title>
+    <meta name="description" content="Goons from Gumtree: a secure daily item log and raid tracker." />
+    <title>Goons from Gumtree</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="ambient.js" defer></script>
     <script src="app.js" defer></script>
+    <script src="admin.js" defer></script>
   </head>
   <body>
     <!-- Ambient faction scene: blurred background, particles, and insignia. -->
@@ -23,19 +25,22 @@
     </div>
     <div class="page-frame">
       <header class="topbar">
-        <a class="brand" href="./" aria-label="Unheard Goons field log home">
-          <span class="brand-mark" aria-hidden="true">UG</span>
-          <span class="brand-name">TARKOV <span>UNHEARD // GOONS</span></span>
+        <a class="brand" href="./" aria-label="Goons from Gumtree home">
+          <span class="brand-mark" aria-hidden="true">GG</span>
+          <span class="brand-name">GOONS <span>FROM GUMTREE</span></span>
         </a>
-        <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> USEC TASK FORCE // GOONS</div>
+        <div class="topbar-actions">
+          <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> <span id="signed-in-as">USEC TASK FORCE // GOONS</span></div>
+          <button class="text-button logout-button" id="logout-button" type="button">Sign out</button>
+        </div>
       </header>
 
       <main>
         <section class="intro" aria-labelledby="page-title">
           <div>
             <p class="eyebrow"><span class="eyebrow-rule"></span> DAILY ROTATION <span id="today-date"></span></p>
-            <h1 id="page-title">Item of the Day<span class="title-period">.</span></h1>
-            <p class="intro-copy">One item. Keep the record.</p>
+            <h1 id="page-title">Goons from Gumtree<span class="title-period">.</span></h1>
+            <p class="intro-copy">Daily item. Keep the field record.</p>
           </div>
           <button class="button button-quiet" id="reroll-button" type="button" disabled>
             <span class="reroll-icon" aria-hidden="true">↻</span> New item
@@ -70,6 +75,30 @@
               <button class="text-button" id="reset-button" type="button" disabled>Reset counts</button>
             </div>
           </section>
+        </section>
+
+        <section class="admin-panel" id="admin-panel" aria-labelledby="admin-title" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">PERSONNEL // ACCESS CONTROL</p>
+              <h2 id="admin-title">Manage users</h2>
+            </div>
+            <span class="record-tag">ADMIN</span>
+          </div>
+          <form class="admin-create-form" id="admin-create-form">
+            <label>Username<input name="username" type="text" autocomplete="off" minlength="2" maxlength="32" pattern="[A-Za-z0-9_.\x2d]+" required /></label>
+            <label>Role<select name="role"><option value="user">Standard user</option><option value="admin">Administrator</option></select></label>
+            <label>Initial password<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Default for standard users" /></label>
+            <button class="button" type="submit">Add user</button>
+          </form>
+          <p class="admin-hint">Leave the password blank for a standard user to use PasswordFromPrapor. Administrator accounts require a custom password.</p>
+          <p class="admin-message" id="admin-message" role="status" aria-live="polite"></p>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead><tr><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Change password</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+              <tbody id="admin-users"></tbody>
+            </table>
+          </div>
         </section>
 
         <footer class="page-footer">

@@ -1,53 +1,43 @@
-# Tarkov Field Log
+# Goons from Gumtree
 
-A static, single-page Tarkov item tracker. It loads an item catalog from the Tarkov.dev REST API, selects one item for the UTC day, and stores found, kill, death, and raid-survived counts in the visitor's browser.
+A secure Escape from Tarkov daily item log with a local raid tracker. Item data is generated from Tarkov.dev; user accounts and sessions run through Cloudflare Pages Functions and Cloudflare D1.
 
-## Files
+## Authentication
 
-```text
-.
-├── .github/
-│   └── workflows/
-│       └── static.yml
-├── app.js
-├── index.html
-├── knightbg.png
-├── styles.css
-└── README.md
+The login page asks for a username first, then a password. `KillaFromKmart` is bootstrapped as the first administrator using the server-only `ADMIN_PASSWORD` secret. On the first successful admin login, the password is salted and hashed into D1; future logins use the stored hash. Keep the bootstrap secret out of source control and use at least 12 characters. Regular users created without a custom password receive `PasswordFromPrapor`.
+
+Sessions use random, HttpOnly, SameSite cookies and expire after seven days. Passwords are stored as PBKDF2-SHA-256 hashes, not plaintext. Login attempts are rate-limited. The Pages middleware protects the tracker and generated item catalog; only the login page and its required assets are public.
+
+## Add or update users
+
+Sign in as an administrator and use **Manage users** below the tracker. Add a username and role. Leave the initial password blank for a standard account to assign `PasswordFromPrapor`; administrator accounts require a custom password of at least 12 characters. Promoting a standard user also requires setting a new administrator password. Existing usernames and roles can be edited, and a password can be replaced by entering a new one. Leaving the password field empty keeps the current password. Password changes and account removal revoke the affected user's sessions. The active administrator and the last administrator cannot be removed or demoted.
+
+Only administrators should share the standard password with designated users. Anyone holding it can sign in if an admin has added their username. For stronger per-person credentials, set a unique password while creating or updating the account.
+
+## Deploy to Cloudflare
+
+The previous GitHub Pages workflow cannot run authentication functions or protect the catalog. Deployment now targets Cloudflare Pages and requires a Cloudflare account.
+
+1. Install Wrangler or use `npx wrangler@4`, then authenticate with `npx wrangler login`.
+2. Create the Pages project with `npx wrangler pages project create goons-from-gumtree`.
+3. Create the database with `npx wrangler d1 create goons-from-gumtree-users`. Copy its database ID into `database_id` in `wrangler.toml`.
+4. Set the bootstrap secret with `npx wrangler pages secret put ADMIN_PASSWORD --project-name goons-from-gumtree`. Use a unique secret of at least 12 characters. Do not commit it.
+5. Add GitHub Actions repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The API token needs Cloudflare Pages edit and D1 edit permissions.
+6. Push to `main` or run the deployment workflow. It generates `items.json`, applies pending D1 migrations, then deploys the Pages assets and Functions.
+
+The scheduled workflow refreshes the Tarkov.dev item catalog daily. Account and user administration remain available through D1 and the admin panel.
+
+## Local development
+
+Create a local `.dev.vars` file with an `ADMIN_PASSWORD` value (at least 12 characters). It is git-ignored. Apply the local migration and start Pages with Wrangler:
+
+```sh
+npx wrangler d1 migrations apply goons-from-gumtree-users --local
+npx wrangler pages dev .
 ```
 
-The page uses `knightbg.png` as a blurred, darkened ambient scene with restrained pointer parallax, canvas particles, and low-contrast Unheard/Goons insignia. The item artwork uses a subtle dual-scale inventory grid; ambient animation respects the reduced-motion setting.
+For a local item preview, generate `items.json` using the same catalog query in `.github/workflows/static.yml`, or deploy and use the generated snapshot. D1 local data is separate from the remote production database.
 
-The Pages workflow downloads `https://json.tarkov.dev/regular/items`, trims the response into `items.json`, and publishes both with GitHub Pages. The browser only fetches this same-origin static file, so it does not make a cross-origin request to Tarkov.dev. No server or runtime dependency is required.
+## Tracker data
 
-## Data source
-
-The build uses the documented REST endpoint `GET https://json.tarkov.dev/regular/items`. It returns the item catalog keyed by ID; the workflow converts it to the compact array expected by the page. The API currently supplies ID-based placeholders for translated names, so the page formats `normalizedName` into a readable fallback and accepts either display names or normalized slugs in `ITEM_NAMES`.
-
-The browser chooses one random item from the generated catalog and remembers that selection for the UTC date. The **New item** button rerolls and saves a different selection for the rest of that day.
-
-## Configure an item list
-
-When you have item names to use, add them to `ITEM_NAMES` near the top of `app.js`:
-
-```js
-const ITEM_NAMES = ['Salewa', 'Graphics card', 'LEDX Skin Transilluminator'];
-```
-
-Leave the array empty to select from the full returned catalog. Matching ignores spaces and punctuation across each item's name, short name, and normalized name.
-
-## Run locally
-
-The Pages workflow creates `items.json` during deployment. To preview the site locally, serve the repository root after generating that file from the REST endpoint. The browser displays loading, catalog error, and retry states when the file is missing or unavailable.
-
-GitHub Actions fetches a fresh catalog on pushes to `main`, manual workflow runs, and once daily. If the REST endpoint is unavailable during deployment, the workflow fails rather than publishing a broken or fabricated catalog; rerun it when the API is back.
-
-Tracker counts and the selected daily item are stored in `localStorage` on the current device and browser. Clearing browser storage removes them.
-
-## Deploy to GitHub Pages
-
-1. Push the repository to GitHub, using the `main` branch.
-2. In **Settings → Pages**, select **GitHub Actions** as the build and deployment source.
-3. Push to `main` or run **Deploy static content to Pages** from the Actions tab.
-
-The included `.github/workflows/static.yml` fetches and compacts the catalog, then uploads the root directory to Pages. The browser request is same-origin, so Tarkov.dev's browser CORS policy no longer blocks the app.
+Daily selection and found, kill, death, and raid-survived counts remain in the visitor's browser `localStorage`, preserving the existing tracker behavior. User credentials, roles, and sessions are stored server-side in D1.

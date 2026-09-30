@@ -1,0 +1,27 @@
+.login-frame { min-height: 100vh; display: flex; flex-direction: column; }
+.login-main { display: grid; flex: 1; place-items: center; padding: 48px 0; }
+.login-panel { width: min(100%, 520px); padding: clamp(24px, 5vw, 46px); border: 1px solid var(--line-strong); background: rgba(13, 19, 20, 0.91); box-shadow: 0 24px 90px rgba(0, 0, 0, 0.28); backdrop-filter: blur(10px); animation: rise-in 460ms cubic-bezier(0.2, 0.7, 0.25, 1) both; }
+.login-panel h1 { margin: 0; font-size: clamp(40px, 8vw, 58px); }
+.login-intro { margin: 13px 0 30px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.login-step[hidden] { display: none; }
+.login-label { display: block; margin-bottom: 9px; color: var(--accent); font-size: 10px; text-transform: uppercase; }
+.login-step input { width: 100%; min-height: 48px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 0; outline: 0; background: rgba(255, 255, 255, 0.035); color: var(--ink); font: inherit; font-size: 13px; transition: border-color 160ms ease, background 160ms ease; }
+.login-step input:focus { border-color: var(--accent); background: rgba(150, 174, 177, 0.07); }
+.login-submit { width: 100%; min-height: 46px; display: flex; align-items: center; justify-content: space-between; margin-top: 13px; padding-inline: 14px; border-color: rgba(150, 174, 177, 0.4); background: rgba(150, 174, 177, 0.08); text-align: left; }
+.login-submit span { color: var(--accent-bright); font-size: 18px; transition: transform 160ms ease; }
+.login-submit:hover span { transform: translateX(3px); }
+.password-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.password-heading .login-label { margin: 0; }
+.password-heading .text-button { font-size: 9px; }
+.login-account { margin: 11px 0 15px; color: var(--ink); font-size: 11px; }
+.login-message { min-height: 17px; margin: 12px 0 0; color: var(--danger); font-size: 10px; line-height: 1.6; }
+.login-message[data-state="success"] { color: #a8c0aa; }
+.login-footnote { display: flex; align-items: center; gap: 9px; margin-top: 21px; padding-top: 15px; border-top: 1px solid var(--line); color: var(--faint); font-size: 8px; }
+.login-footnote .status-indicator { width: 6px; height: 6px; }
+.login-frame > .page-footer { margin-top: auto; }
+
+@media (max-width: 560px) {
+  .login-main { padding: 28px 0; }
+  .login-panel { padding: 25px 20px; }
+  .login-frame > .page-footer { font-size: 8px; }
+}
