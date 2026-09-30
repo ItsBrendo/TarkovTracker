@@ -1,349 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tarkov Tracker</title>
-    <style>
-      :root {
-        --bg: #0b0f12;
-        --panel: rgba(18, 23, 27, 0.8);
-        --panel-edge: rgba(255,255,255,0.12);
-        --text: #edf3f1;
-        --muted: #9aa8a8;
-        --accent: #dbaf69;
-        --accent-soft: rgba(219,175,105,0.12);
-        --error: #ff8c8c;
-      }
-
-      * { box-sizing: border-box; }
-
-      html, body {
-        margin: 0;
-        min-height: 100%;
-        background:
-          radial-gradient(circle at 50% 18%, rgba(210, 185, 140, 0.12), transparent 16%),
-          linear-gradient(180deg, rgba(4,7,10,0.82), rgba(8,12,15,0.96)),
-          linear-gradient(135deg, #0a1114, #0d1419 50%, #080d11);
-        color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
-      }
-
-      body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        background: linear-gradient(90deg, rgba(0,0,0,0.2), transparent 30%, rgba(0,0,0,0.2));
-      }
-
-      .shell {
-        position: relative;
-        z-index: 1;
-        width: min(1120px, calc(100vw - 48px));
-        margin: 0 auto;
-        padding: 28px 0 40px;
-      }
-
-      .screen {
-        display: none;
-        background: var(--panel);
-        border: 1px solid var(--panel-edge);
-        box-shadow: 0 18px 36px rgba(0,0,0,0.28);
-        padding: 18px 18px 8px;
-      }
-
-      .screen.active {
-        display: block;
-      }
-
-      .screen-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 20px;
-      }
-
-      .screen-header h2 {
-        margin: 0;
-        color: var(--accent);
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-size: 0.82rem;
-      }
-
-      .roster-layout {
-        display: grid;
-        grid-template-columns: 220px minmax(0, 1fr);
-        gap: 10px;
-      }
-
-      .player-roster {
-        display: grid;
-        gap: 8px;
-      }
-
-      .roster-player {
-        border: 1px solid var(--panel-edge);
-        background: rgba(0,0,0,0.25);
-        color: var(--text);
-        padding: 12px;
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .roster-player.active {
-        background: var(--accent);
-        color: #1b120a;
-        border-color: var(--accent);
-        font-weight: 700;
-      }
-
-      .status-label {
-        color: var(--muted);
-        font-size: 0.82rem;
-        letter-spacing: 0.09em;
-        text-transform: uppercase;
-      }
-
-      .turnstile {
-        margin: 0 0 18px;
-        min-height: 65px;
-      }
-
-      .profile-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px 18px;
-      }
-
-      .stat {
-        padding: 12px 14px;
-        background: rgba(255,255,255,0.02);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .stat-label {
-        display: block;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-size: 0.62rem;
-        margin-bottom: 8px;
-      }
-
-      .stat-value {
-        display: block;
-        font-size: clamp(1rem, 2vw, 1.55rem);
-        font-weight: 700;
-      }
-
-      .error-box {
-        display: none;
-        margin-top: 10px;
-        padding: 10px 12px;
-        border: 1px solid rgba(255, 140, 140, 0.3);
-        background: rgba(255, 140, 140, 0.08);
-        color: #ffd9d9;
-      }
-
-      .error-box.visible {
-        display: block;
-      }
-
-      @media (max-width: 680px) {
-        .profile-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#111411" />
+    <meta name="description" content="A daily Escape from Tarkov item and personal field log." />
+    <title>Item of the Day | Tarkov Field Log</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
   </head>
   <body>
-    <div class="shell">
-      <section id="page-character" class="screen active">
-        <div class="roster-layout">
-          <aside>
-            <div class="screen-header">
-              <h2>Community roster</h2>
-            </div>
-            <div id="player-roster" class="player-roster"></div>
-          </aside>
-          <section>
-            <div class="screen-header">
-              <h2 id="selected-player-name">Character</h2>
-              <div id="player-status" class="status-label">Select a player</div>
-            </div>
-            <div
-              id="turnstile-widget"
-              class="cf-turnstile turnstile"
-              data-sitekey="0x4AAAAAAFCDjJpFe_zy3kpw"
-              data-callback="onTurnstileSuccess"
-              data-expired-callback="onTurnstileExpired"
-            ></div>
-            <div id="player-error" class="error-box"></div>
-            <div id="player-grid" class="profile-grid"></div>
-          </section>
+    <div class="page-frame">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="Tarkov Field Log home">
+          <span class="brand-mark" aria-hidden="true">TF</span>
+          <span class="brand-name">TARKOV <span>FIELD LOG</span></span>
+        </a>
+        <div class="topbar-meta"><span class="live-dot" aria-hidden="true"></span> PERSONAL RAID RECORD</div>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-rule"></span> DAILY ROTATION <span id="today-date"></span></p>
+            <h1 id="page-title">Item of the Day<span class="title-period">.</span></h1>
+            <p class="intro-copy">One item. Keep the record.</p>
+          </div>
+          <button class="button button-quiet" id="reroll-button" type="button" disabled>
+            <span class="reroll-icon" aria-hidden="true">↻</span> New item
+          </button>
+        </section>
+
+        <div class="status-strip" id="app-status" role="status" aria-live="polite">
+          <span class="status-indicator" aria-hidden="true"></span>
+          <span id="status-text">Connecting to Tarkov.dev...</span>
         </div>
-      </section>
+
+        <section class="content-grid" aria-label="Daily item and tracker">
+          <div id="item-region" class="item-region" aria-live="polite" aria-busy="true">
+            <div class="loading-panel">
+              <span class="loading-mark" aria-hidden="true"></span>
+              <p>SCANNING ITEM DATABASE</p>
+            </div>
+          </div>
+          <section class="tracker-panel" aria-labelledby="tracker-title">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">PERSONAL RECORD</p>
+                <h2 id="tracker-title">Field tracker</h2>
+              </div>
+              <span class="record-tag">LOCAL</span>
+            </div>
+            <div id="tracker-region" class="tracker-region">
+              <p class="tracker-empty">Your counts for today's item will appear here.</p>
+            </div>
+            <div class="tracker-footer">
+              <span>Saved on this device</span>
+              <button class="text-button" id="reset-button" type="button" disabled>Reset counts</button>
+            </div>
+          </section>
+        </section>
+
+        <footer class="page-footer">
+          <span>ITEM DATA <a href="https://tarkov.dev" target="_blank" rel="noreferrer">TARKOV.DEV</a></span>
+          <span>YOUR TRACKER DATA STAYS IN THIS BROWSER</span>
+        </footer>
+      </main>
     </div>
-
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <script src="shared.js"></script>
-    <script>
-      const playerStatusEl = document.getElementById('player-status');
-      const playerErrorEl = document.getElementById('player-error');
-      const playerGridEl = document.getElementById('player-grid');
-      const playerRosterEl = document.getElementById('player-roster');
-      const selectedPlayerNameEl = document.getElementById('selected-player-name');
-      let turnstileToken = '';
-      let selectedPlayer = null;
-
-      // Add private community members here with their Tarkov account IDs.
-      const COMMUNITY_PLAYERS = [
-        { nickname: 'KillaFromKmart', accountId: '1192376', gameMode: 'pve' },
-        { nickname: 'TagillaFromTemu', accountId: '', gameMode: 'pve' },
-        { nickname: 'GlukharFromGolo', accountId: '', gameMode: 'pve' },
-        { nickname: 'PartisanFrom711', accountId: '', gameMode: 'pve' },
-        { nickname: 'NoxFromNorvinsk', accountId: '', gameMode: 'pve' },
-        { nickname: 'TimmyFr0mTarkov', accountId: '', gameMode: 'pve' }
-      ];
-
-      function setPage(pageName) {
-        const validPages = ['character'];
-        const safePage = validPages.includes(pageName) ? pageName : 'character';
-        const pages = document.querySelectorAll('.screen');
-        pages.forEach((page) => page.classList.toggle('active', page.id === 'page-' + safePage));
-      }
-
-      function readPageFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const requestedPage = params.get('page') || 'character';
-        return requestedPage;
-      }
-
-      function showError(message) {
-        playerErrorEl.textContent = message;
-        playerErrorEl.classList.add('visible');
-      }
-
-      function clearError() {
-        playerErrorEl.textContent = '';
-        playerErrorEl.classList.remove('visible');
-      }
-
-      function renderPlayer(data) {
-        playerGridEl.innerHTML = '';
-
-        if (!data) {
-          playerGridEl.innerHTML = '<div class="stat"><span class="stat-label">Profile</span><span class="stat-value">Unavailable</span></div>';
-          return;
-        }
-
-        const stats = [
-          ['Nickname', data.nickname || 'Unknown'],
-          ['Side', data.side || 'Unknown'],
-          ['Experience', Number(data.experience || 0).toLocaleString()],
-          ['PMC Kills', Number(data.pmcKills || 0).toLocaleString()],
-          ['PMC Deaths', Number(data.pmcDeaths || 0).toLocaleString()],
-          ['Battles', Number(data.pmcSessions || 0).toLocaleString()],
-          ['Playtime', `${Number(data.totalPlaytimeSeconds || 0).toLocaleString()} sec`],
-          ['Battle Pass', `${Number(data.battlePassCompleted || 0)}/${Number(data.battlePassTotal || 0)}`]
-        ];
-
-        stats.forEach(([label, value]) => {
-          const stat = document.createElement('div');
-          stat.className = 'stat';
-          stat.innerHTML = `
-            <span class="stat-label">${label}</span>
-            <span class="stat-value">${value}</span>
-          `;
-          playerGridEl.appendChild(stat);
-        });
-      }
-
-      function getRoster() {
-        const configuredPlayers = new URLSearchParams(window.location.search).get('players');
-        if (!configuredPlayers) return COMMUNITY_PLAYERS;
-
-        return configuredPlayers.split(',').map((nickname) => ({
-          nickname: nickname.trim(),
-          accountId: '',
-          gameMode: 'pve'
-        })).filter((player) => player.nickname);
-      }
-
-      function renderRoster(players, selectedNickname) {
-        playerRosterEl.innerHTML = '';
-        players.forEach((player) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = `roster-player${player.nickname === selectedNickname ? ' active' : ''}`;
-          button.textContent = player.nickname;
-          button.addEventListener('click', () => {
-            loadPlayer(player);
-            renderRoster(players, player.nickname);
-          });
-          playerRosterEl.appendChild(button);
-        });
-      }
-
-      async function loadPlayer(player) {
-        selectedPlayer = player;
-        selectedPlayerNameEl.textContent = player.nickname;
-
-        if (!player.accountId) {
-          playerStatusEl.textContent = 'Account ID missing';
-          renderPlayer(null);
-          showError('Add this player\'s Tarkov account ID to COMMUNITY_PLAYERS.');
-          return;
-        }
-
-        if (!turnstileToken) {
-          playerStatusEl.textContent = 'Verification required';
-          renderPlayer(null);
-          showError('Complete the verification above to load this profile.');
-          return;
-        }
-
-        try {
-          playerStatusEl.textContent = 'Loading profile...';
-          clearError();
-          const profile = await TarkovTracker.fetchPlayerSummary(player.accountId, player.gameMode || 'pve', turnstileToken);
-          if (!profile) throw new Error('Unable to load private character data.');
-          renderPlayer(profile);
-          playerStatusEl.textContent = 'Profile synced';
-        } catch (error) {
-          playerStatusEl.textContent = 'Profile unavailable';
-          showError(TarkovTracker.lastError || (error instanceof Error ? error.message : 'Unknown profile error'));
-          renderPlayer(null);
-        }
-      }
-
-      function loadCharacter() {
-        setPage(readPageFromUrl());
-        const roster = getRoster();
-        const selectedNickname = new URLSearchParams(window.location.search).get('player') || roster[0]?.nickname;
-        renderRoster(roster, selectedNickname);
-        const selectedPlayer = roster.find((player) => player.nickname === selectedNickname) || roster[0];
-        if (selectedPlayer) loadPlayer(selectedPlayer);
-      }
-
-      function onTurnstileSuccess(token) {
-        turnstileToken = token;
-        clearError();
-        if (selectedPlayer) loadPlayer(selectedPlayer);
-      }
-
-      function onTurnstileExpired() {
-        turnstileToken = '';
-        playerStatusEl.textContent = 'Verification expired';
-      }
-
-      window.onTurnstileSuccess = onTurnstileSuccess;
-      window.onTurnstileExpired = onTurnstileExpired;
-      window.addEventListener('popstate', loadCharacter);
-      loadCharacter();
-    </script>
   </body>
 </html>
