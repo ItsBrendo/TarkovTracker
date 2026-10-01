@@ -22,6 +22,7 @@ const viewPanels = [...document.querySelectorAll('[data-view-panel]')];
 let catalog = [];
 let currentItem = null;
 let catalogGeneratedAt = '';
+let gameData = null;
 let trackerData = readTrackerData();
 
 const TRACKED_STATS = [
@@ -69,18 +70,6 @@ function setView(viewName, focusTab = false) {
   menuButton.setAttribute('aria-expanded', 'false');
 }
 
-function renderProfileItem(item) {
-  const content = document.querySelector('#profile-item-content');
-  const imageUrl = item.imageLink || item.iconLink;
-  const name = getDisplayName(item);
-  const category = Array.isArray(item.types) && item.types.length ? item.types[0] : 'Tarkov item';
-  const dimensions = item.width && item.height ? `${item.width} × ${item.height} CELLS` : 'SIZE NOT LISTED';
-  content.innerHTML = `
-    <div class="profile-item-art">${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />` : '<span aria-hidden="true">?</span>'}</div>
-    <div class="profile-item-copy"><span class="profile-item-category">${escapeHtml(category)}</span><strong>${escapeHtml(name)}</strong><span>${escapeHtml(dimensions)}</span><span>${formatPrice(item.basePrice)}</span></div>`;
-  document.querySelector('#profile-item-size').textContent = dimensions;
-}
-
 function renderProfile() {
   const records = Object.entries(trackerData).map(([id, saved]) => ({
     id,
@@ -94,34 +83,51 @@ function renderProfile() {
     return sum;
   }, { found: 0, kills: 0, deaths: 0, survived: 0 });
   const tracked = records.filter((record) => record.found + record.kills + record.deaths + record.survived > 0);
+  const raids = totals.deaths + totals.survived;
+  const killDeathRatio = totals.kills / Math.max(1, totals.deaths);
+  const survivalRate = raids ? (totals.survived / raids) * 100 : 0;
 
   document.querySelector('#stat-items').textContent = formatNumber(tracked.length);
   document.querySelector('#stat-found').textContent = formatNumber(totals.found);
   document.querySelector('#stat-kills').textContent = formatNumber(totals.kills);
+  document.querySelector('#stat-deaths').textContent = formatNumber(totals.deaths);
+  document.querySelector('#stat-raids').textContent = formatNumber(raids);
   document.querySelector('#stat-survived').textContent = formatNumber(totals.survived);
+  document.querySelector('#stat-kd').textContent = killDeathRatio.toFixed(2);
+  document.querySelector('#stat-survival-rate').textContent = `${Math.round(survivalRate)}%`;
 
-  const mostLogged = [...tracked].sort((left, right) =>
-    (right.found + right.kills + right.deaths + right.survived)
-      - (left.found + left.kills + left.deaths + left.survived))[0];
-  const ledger = document.querySelector('#ledger-highlight');
-  if (!mostLogged) {
-    ledger.innerHTML = '<span>No tracked items yet.</span><small>Start with today\'s rotation to build your record.</small>';
-  } else {
-    const item = catalog.find((entry) => entry.id === mostLogged.id);
-    ledger.innerHTML = `<strong>${escapeHtml(item ? getDisplayName(item) : mostLogged.id)}</strong><span>${formatNumber(mostLogged.found)} FOUND <i>/</i> ${formatNumber(mostLogged.kills)} KILLS <i>/</i> ${formatNumber(mostLogged.survived)} SURVIVED</span>`;
+  const apiTotals = {
+    items: gameData?.items ?? catalog.length,
+    itemCategories: gameData?.itemCategories,
+    handbookCategories: gameData?.handbookCategories,
+    armorMaterials: gameData?.armorMaterials,
+    specialItems: gameData?.specialItems,
+    tasks: gameData?.tasks,
+    maps: gameData?.maps,
+    traders: gameData?.traders,
+    hideout: gameData?.hideoutAreas,
+    crafts: gameData?.crafts,
+    barters: gameData?.barters,
+    levels: gameData?.playerLevels,
+    skills: gameData?.skills,
+    mastery: gameData?.masteryGroups,
+    fleaLevel: gameData?.fleaMarketUnlock
+  };
+  const apiTargets = {
+    items: '#catalog-count', itemCategories: '#api-item-categories', handbookCategories: '#api-handbook-categories',
+    armorMaterials: '#api-armor-materials', specialItems: '#api-special-items', tasks: '#api-tasks', maps: '#api-maps',
+    traders: '#api-traders', hideout: '#api-hideout', crafts: '#api-crafts', barters: '#api-barters',
+    levels: '#api-levels', skills: '#api-skills', mastery: '#api-mastery', fleaLevel: '#api-flea-level'
+  };
+  for (const [key, target] of Object.entries(apiTargets)) {
+    const value = apiTotals[key];
+    document.querySelector(target).textContent = value == null ? '—' : formatNumber(value);
   }
-
-  if (currentItem) renderProfileItem(currentItem);
-  if (catalog.length) {
-    const highestValue = catalog.reduce((best, item) => {
-      const price = Number(item.basePrice);
-      if (!Number.isFinite(price)) return best;
-      return !best || price > Number(best.basePrice) ? item : best;
-    }, null);
-    document.querySelector('#catalog-count').textContent = formatNumber(catalog.length);
-    document.querySelector('#catalog-top-item').textContent = highestValue ? getDisplayName(highestValue) : 'No value data';
-    document.querySelector('#catalog-top-value').textContent = highestValue ? formatPrice(highestValue.basePrice) : '--';
-  }
+  const snapshotDate = gameData?.generatedAt || catalogGeneratedAt;
+  document.querySelector('#catalog-snapshot').textContent = snapshotDate
+    ? new Date(snapshotDate).toLocaleString()
+    : 'Snapshot date unavailable';
+  document.querySelector('#catalog-state').textContent = gameData ? 'FULL' : 'ITEMS';
 }
 
 function normalizeName(value) {
@@ -198,6 +204,20 @@ async function fetchItems() {
 
   catalogGeneratedAt = payload.generatedAt || '';
   return payload.items.filter((item) => item?.id && item?.name);
+}
+
+async function fetchGameData() {
+  try {
+    const response = await fetch('./game-data.json', {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload && typeof payload === 'object' ? payload : null;
+  } catch {
+    return null;
+  }
 }
 
 function escapeHtml(value) {
@@ -322,7 +342,9 @@ async function loadCatalog() {
   setStatus('CONNECTING TO TARKOV.DEV...', 'loading');
 
   try {
-    const items = getSelectableItems(await fetchItems());
+    const [fetchedItems, fetchedGameData] = await Promise.all([fetchItems(), fetchGameData()]);
+    const items = getSelectableItems(fetchedItems);
+    gameData = fetchedGameData;
     if (!items.length) {
       throw new Error(ITEM_NAMES.length
         ? 'No catalog items match the names configured in ITEM_NAMES.'
@@ -438,6 +460,12 @@ async function startApp() {
     document.querySelector('#settings-username').textContent = user.username;
     document.querySelector('#settings-role-name').textContent = user.role === 'admin' ? 'Administrator' : 'Standard user';
     document.querySelector('#settings-role').textContent = user.role.toUpperCase();
+    document.querySelector('#settings-role-badge').textContent = user.role.toUpperCase();
+    document.querySelector('#record-username').textContent = user.username;
+    document.querySelector('#record-role').textContent = user.role === 'admin' ? 'Administrator' : 'Standard user';
+    document.querySelector('#record-created').textContent = user.created_at
+      ? new Date(user.created_at * 1000).toLocaleDateString()
+      : '—';
     document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
     loadCatalog();
   } catch (error) {

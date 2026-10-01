@@ -46,7 +46,38 @@ jobs:
               } | select(.id != null and (.name != null or .normalizedName != null))
             ]
           }' api-response.json > items.json
-          rm api-response.json
+          for endpoint in tasks maps traders hideout crafts barters; do
+            curl --compressed --fail --silent --show-error --retry 3 --retry-all-errors \
+              -H 'Accept: application/json' \
+              "https://json.tarkov.dev/regular/${endpoint}" --output "${endpoint}.json"
+          done
+          jq -n \
+            --slurpfile items api-response.json \
+            --slurpfile tasks tasks.json \
+            --slurpfile maps maps.json \
+            --slurpfile traders traders.json \
+            --slurpfile hideout hideout.json \
+            --slurpfile crafts crafts.json \
+            --slurpfile barters barters.json \
+            '{
+              generatedAt: (now | todateiso8601),
+              items: ($items[0].data.items | length),
+              itemCategories: ($items[0].data.itemCategories | length),
+              handbookCategories: ($items[0].data.handbookCategories | length),
+              fleaMarketUnlock: $items[0].data.fleaMarket.minPlayerLevel,
+              armorMaterials: ($items[0].data.armorMaterials | length),
+              playerLevels: ($items[0].data.playerLevels | length),
+              skills: ($items[0].data.skills | length),
+              masteryGroups: ($items[0].data.mastering | length),
+              specialItems: ($items[0].data.specialItems | length),
+              tasks: (($tasks[0].data.tasks // $tasks[0].data) | length),
+              maps: (($maps[0].data.maps // $maps[0].data) | length),
+              traders: (($traders[0].data.traders // $traders[0].data) | length),
+              hideoutAreas: (($hideout[0].data.hideout // $hideout[0].data) | length),
+              crafts: (($crafts[0].data.crafts // $crafts[0].data) | length),
+              barters: (($barters[0].data.barters // $barters[0].data) | length)
+            }' > game-data.json
+          rm api-response.json tasks.json maps.json traders.json hideout.json crafts.json barters.json
       - name: Apply D1 migrations and deploy Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

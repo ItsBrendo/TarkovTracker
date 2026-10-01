@@ -72,45 +72,54 @@
           </div>
 
           <section class="operator-stats" aria-label="Your tracker record">
-            <article class="operator-stat"><span class="operator-stat-label">Items logged</span><strong id="stat-items">0</strong><span class="operator-stat-note">unique catalog items</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Found</span><strong id="stat-found">0</strong><span class="operator-stat-note">recorded finds</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Kills</span><strong id="stat-kills">0</strong><span class="operator-stat-note">field record</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Raids survived</span><strong id="stat-survived">0</strong><span class="operator-stat-note">logged by you</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Tracked items</span><strong id="stat-items">0</strong><span class="operator-stat-note">unique records</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Finds</span><strong id="stat-found">0</strong><span class="operator-stat-note">logged by you</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Kills</span><strong id="stat-kills">0</strong><span class="operator-stat-note">personal record</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Deaths</span><strong id="stat-deaths">0</strong><span class="operator-stat-note">personal record</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Raids logged</span><strong id="stat-raids">0</strong><span class="operator-stat-note">survived + deaths</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Survived</span><strong id="stat-survived">0</strong><span class="operator-stat-note">logged raids</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">K/D ratio</span><strong id="stat-kd">0.00</strong><span class="operator-stat-note">from field ledger</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Survival rate</span><strong id="stat-survival-rate">0%</strong><span class="operator-stat-note">from field ledger</span></article>
           </section>
 
           <div class="profile-grid">
-            <section class="profile-panel profile-daily" aria-labelledby="profile-daily-title">
+            <section class="profile-panel profile-record" aria-labelledby="profile-record-title">
               <div class="panel-heading">
-                <div><p class="eyebrow">TARKOV.DEV // DAILY ROTATION</p><h2 id="profile-daily-title">Today's field item</h2></div>
-                <span class="record-tag" id="profile-item-size">API</span>
+                <div><p class="eyebrow">PERSONAL RECORD // THIS BROWSER</p><h2 id="profile-record-title">Operator file</h2></div>
+                <span class="record-tag" id="settings-role-badge">USER</span>
               </div>
-              <div class="profile-item-content" id="profile-item-content">
-                <span class="loading-mark" aria-hidden="true"></span>
-                <p>Pulling item intelligence...</p>
-              </div>
-              <button class="button profile-action" type="button" data-view-target="daily">Open daily item <span aria-hidden="true">→</span></button>
+              <dl class="profile-record-list">
+                <div><dt>Username</dt><dd id="record-username">—</dd></div>
+                <div><dt>Access level</dt><dd id="record-role">—</dd></div>
+                <div><dt>Personnel since</dt><dd id="record-created">—</dd></div>
+                <div><dt>Data source</dt><dd>Personal field ledger</dd></div>
+              </dl>
             </section>
             <section class="profile-panel profile-catalog" aria-labelledby="catalog-title">
               <div class="panel-heading">
-                <div><p class="eyebrow">LIVE CATALOG // TARKOV.DEV</p><h2 id="catalog-title">Market signal</h2></div>
-                <span class="live-dot" aria-label="Catalog loaded"></span>
+                <div><p class="eyebrow">LIVE GAME DATA // TARKOV.DEV</p><h2 id="catalog-title">World intelligence</h2></div>
+                <span class="record-tag" id="catalog-state">SYNC</span>
               </div>
-              <div class="market-signal">
-                <span class="market-label">ITEMS INDEXED</span>
-                <strong id="catalog-count">--</strong>
-                <span class="market-label">HIGHEST BASE VALUE</span>
-                <span class="market-item-name" id="catalog-top-item">Awaiting catalog</span>
-                <span class="market-value" id="catalog-top-value">--</span>
+              <div class="world-data-grid" aria-live="polite">
+                <div><span>Items</span><strong id="catalog-count">--</strong></div>
+                <div><span>Item categories</span><strong id="api-item-categories">--</strong></div>
+                <div><span>Handbook groups</span><strong id="api-handbook-categories">--</strong></div>
+                <div><span>Armor materials</span><strong id="api-armor-materials">--</strong></div>
+                <div><span>Special items</span><strong id="api-special-items">--</strong></div>
+                <div><span>Tasks</span><strong id="api-tasks">--</strong></div>
+                <div><span>Maps</span><strong id="api-maps">--</strong></div>
+                <div><span>Traders</span><strong id="api-traders">--</strong></div>
+                <div><span>Hideout areas</span><strong id="api-hideout">--</strong></div>
+                <div><span>Crafts</span><strong id="api-crafts">--</strong></div>
+                <div><span>Barters</span><strong id="api-barters">--</strong></div>
+                <div><span>Player levels</span><strong id="api-levels">--</strong></div>
+                <div><span>Skills</span><strong id="api-skills">--</strong></div>
+                <div><span>Mastery groups</span><strong id="api-mastery">--</strong></div>
+                <div><span>Flea unlock</span><strong id="api-flea-level">--</strong></div>
               </div>
-              <a class="catalog-link" href="https://tarkov.dev" target="_blank" rel="noreferrer">SOURCE: TARKOV.DEV ↗</a>
-            </section>
-            <section class="profile-panel profile-ledger" aria-labelledby="ledger-title">
-              <div class="panel-heading">
-                <div><p class="eyebrow">PERSONAL RECORD // THIS DEVICE</p><h2 id="ledger-title">Field ledger</h2></div>
-                <span class="record-tag">LOCAL</span>
-              </div>
-              <div class="ledger-highlight" id="ledger-highlight"><span>No tracked items yet.</span></div>
-              <button class="text-button" type="button" data-view-target="daily">Open today's tracker →</button>
+              <p class="catalog-snapshot">DATA SNAPSHOT <span id="catalog-snapshot">Awaiting API data</span></p>
+              <p class="catalog-disclaimer">Tarkov.dev publishes shared game data, not individual account progress. Personal totals above come from your field ledger.</p>
+              <a class="catalog-link" href="https://tarkov.dev/api/" target="_blank" rel="noreferrer">API SOURCE: TARKOV.DEV ↗</a>
             </section>
           </section>
         </section>
@@ -125,7 +134,7 @@
             <button class="button button-quiet" id="reroll-button" type="button" disabled>
               <span class="reroll-icon" aria-hidden="true">↻</span> New item
             </button>
-          </div>
+          </section>
           <section class="content-grid" aria-label="Daily item and tracker">
             <div id="item-region" class="item-region" aria-live="polite" aria-busy="true">
               <div class="loading-panel"><span class="loading-mark" aria-hidden="true"></span><p>SCANNING ITEM DATABASE</p></div>
@@ -138,7 +147,7 @@
               <div id="tracker-region" class="tracker-region"><p class="tracker-empty">Your counts for today's item will appear here.</p></div>
               <div class="tracker-footer"><span>Saved on this device</span><button class="text-button" id="reset-button" type="button" disabled>Reset counts</button></div>
             </section>
-          </div>
+          </section>
         </section>
 
         <section class="app-view settings-view" id="settings-view" role="tabpanel" aria-labelledby="tab-settings" data-view-panel="settings" hidden>

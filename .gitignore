@@ -1,4 +1,11 @@
 .wrangler/
 .dev.vars*
 items.json
+game-data.json
 api-response.json
+tasks.json
+maps.json
+traders.json
+hideout.json
+crafts.json
+barters.json

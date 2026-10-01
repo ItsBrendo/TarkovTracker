@@ -46,4 +46,6 @@ For a local item preview, generate `items.json` using the same catalog query in 
 
 ## Tracker data
 
-Daily selection and found, kill, death, and raid-survived counts remain in the visitor's browser `localStorage`, preserving the existing tracker behavior. User credentials, roles, and sessions are stored server-side in D1..
+Tarkov.dev's public API provides shared game data (items, player-level thresholds, skills, tasks, maps, traders, hideout areas, crafts, and barters); it does not provide an individual player's account, stash, raid history, or character statistics. The profile labels this information as public game data and never presents it as a personal API profile.
+
+The deployment workflow writes item details to `items.json` for the Daily item tab and aggregate endpoint counts to `game-data.json` for the operator profile. Personal finds, kills, deaths, and survived raids remain in that browser's `localStorage`; account identity and role come from the authenticated D1 session.

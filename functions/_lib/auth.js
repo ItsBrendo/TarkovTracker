@@ -59,7 +59,7 @@ export async function getSession(context) {
   const tokenHash = await sha256(token);
   const now = Math.floor(Date.now() / 1000);
   const row = await context.env.DB.prepare(`
-    SELECT users.id, users.username, users.role
+    SELECT users.id, users.username, users.role, users.created_at
     FROM sessions JOIN users ON users.id = sessions.user_id
     WHERE sessions.token_hash = ?1 AND sessions.expires_at > ?2
   `).bind(tokenHash, now).first();
