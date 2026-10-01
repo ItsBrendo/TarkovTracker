@@ -1,6 +1,7 @@
 const TRACKER_STORAGE_KEY = 'tarkov-field-log.tracker.v1';
 const DAILY_STORAGE_KEY = 'tarkov-field-log.selection.v1';
 const TRACKING_ENABLED = false;
+const TRACKER_API_ENABLED = false;
 
 // Add exact Tarkov.dev item names here to restrict the daily selection.
 const ITEM_NAMES = [];
@@ -22,6 +23,10 @@ const trackerApiTokenInput = document.querySelector('#tracker-api-token');
 const trackerApiStatus = document.querySelector('#tracker-api-status');
 const trackerApiBadge = document.querySelector('#tracker-api-badge');
 const trackerApiDisconnect = document.querySelector('#tracker-api-disconnect');
+const profileJsonInput = document.querySelector('#profile-json-input');
+const profileUploadStatus = document.querySelector('#profile-upload-status');
+const hubList = document.querySelector('#hub-list');
+const hubCount = document.querySelector('#hub-count');
 const viewTabs = [...document.querySelectorAll('.view-tab')];
 const viewPanels = [...document.querySelectorAll('[data-view-panel]')];
 
@@ -75,6 +80,84 @@ function setView(viewName, focusTab = false) {
   }
   menuPanel.hidden = true;
   menuButton.setAttribute('aria-expanded', 'false');
+}
+
+function countPlayerCounters(stats) {
+  const result = { sessions: 0, survived: 0, kills: 0, deaths: 0, killedPmc: 0 };
+  for (const item of Array.isArray(stats?.eft?.overAllCounters?.Items) ? stats.eft.overAllCounters.Items : []) {
+    const key = Array.isArray(item.Key) ? item.Key : [];
+    const value = Math.max(0, Number(item.Value) || 0);
+    if (key[0] === 'Sessions') result.sessions = value;
+    if (key[0] === 'Kills') result.kills = value;
+    if (key[0] === 'Deaths') result.deaths = value;
+    if (key[0] === 'KilledPmc') result.killedPmc = value;
+    if (key[0] === 'ExitStatus' && key[1] === 'Survived') result.survived = value;
+  }
+  return result;
+}
+
+function normalizeUploadedProfile(profile) {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile) || !profile.info?.nickname) return null;
+  const list = (value, fields) => Array.isArray(value) ? value.slice(0, 100).map((entry) => Object.fromEntries(fields
+    .filter((field) => typeof entry?.[field] === 'string' || Number.isFinite(entry?.[field]))
+    .map((field) => [field, entry[field]]))) : [];
+  return {
+    info: {
+      nickname: String(profile.info.nickname).slice(0, 32), side: String(profile.info.side || '').slice(0, 16),
+      experience: Number.isFinite(profile.info.experience) ? profile.info.experience : null,
+      prestigeLevel: Number.isFinite(profile.info.prestigeLevel) ? profile.info.prestigeLevel : null
+    },
+    aid: Number.isFinite(profile.aid) ? profile.aid : null,
+    pmcStats: countPlayerCounters(profile.pmcStats),
+    scavStats: countPlayerCounters(profile.scavStats),
+    skills: {
+      Common: list(profile.skills?.Common, ['Id', 'Progress', 'PointsEarnedDuringSession']),
+      Mastering: list(profile.skills?.Mastering, ['Id', 'Progress', 'Kills'])
+    },
+    achievements: profile.achievements && typeof profile.achievements === 'object' ? Object.keys(profile.achievements).length : 0,
+    battlePassProgress: list(profile.battlePassProgress, ['battlePassId', 'completed', 'total']),
+    seasonalRewards: {
+      completed: Number.isFinite(profile.seasonalRewards?.completed) ? profile.seasonalRewards.completed : null,
+      total: Number.isFinite(profile.seasonalRewards?.total) ? profile.seasonalRewards.total : null
+    }
+  };
+}
+
+function formatPlayerRatio(kills, deaths) {
+  return (Number(kills) / Math.max(1, Number(deaths))).toFixed(2);
+}
+
+function renderHub(profiles) {
+  hubCount.textContent = `${profiles.length} FILE${profiles.length === 1 ? '' : 'S'}`;
+  if (!profiles.length) {
+    hubList.innerHTML = '<p class="tracker-empty">No player exports uploaded yet.</p>';
+    return;
+  }
+  hubList.innerHTML = profiles.map((profile) => {
+    const pmc = profile.pmc || {};
+    const scav = profile.scav || {};
+    const uploaded = profile.uploadedAt ? new Date(profile.uploadedAt * 1000).toLocaleString() : 'Unknown';
+    const detail = `
+      <div class="hub-detail-grid">
+        <div><span>PMC K/D</span><strong>${formatPlayerRatio(pmc.kills, pmc.deaths)}</strong></div>
+        <div><span>PMC survival</span><strong>${Math.round((pmc.survived / Math.max(1, pmc.sessions)) * 100)}%</strong></div>
+        <div><span>Scav K/D</span><strong>${formatPlayerRatio(scav.kills, scav.deaths)}</strong></div>
+        <div><span>Scav survival</span><strong>${Math.round((scav.survived / Math.max(1, scav.sessions)) * 100)}%</strong></div>
+      </div>
+      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span></div>`;
+    return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
+  }).join('');
+}
+
+async function loadHub() {
+  try {
+    const response = await fetch('/api/hub/profiles', { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not load the player hub.');
+    renderHub(result.profiles || []);
+  } catch (error) {
+    hubList.innerHTML = `<p class="tracker-empty">${escapeHtml(error.message)}</p>`;
+  }
 }
 
 function renderProfile() {
@@ -186,6 +269,10 @@ async function loadTrackerConnection() {
 
 trackerApiForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (!TRACKER_API_ENABLED) {
+    setTrackerApiStatus('TarkovTracker API linking is coming soon.', '');
+    return;
+  }
   if (!trackerApiForm.reportValidity()) return;
   const submitButton = trackerApiForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
@@ -499,6 +586,32 @@ document.addEventListener('click', (event) => {
   }
 });
 
+profileJsonInput.addEventListener('change', async () => {
+  const file = profileJsonInput.files?.[0];
+  if (!file) return;
+  profileUploadStatus.textContent = 'Reading and reducing export locally...';
+  profileUploadStatus.dataset.state = '';
+  try {
+    const raw = await file.text();
+    const normalized = normalizeUploadedProfile(JSON.parse(raw));
+    if (!normalized) throw new Error('That file does not look like a Tarkov.dev player export.');
+    const response = await fetch('/api/hub/profiles', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ profile: normalized })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not save the player summary.');
+    profileUploadStatus.textContent = `Uploaded ${new Date(result.profile.uploadedAt * 1000).toLocaleString()}. Raw JSON was discarded.`;
+    profileUploadStatus.dataset.state = 'connected';
+    await loadHub();
+  } catch (error) {
+    profileUploadStatus.textContent = error instanceof SyntaxError ? 'The selected file is not valid JSON.' : error.message;
+    profileUploadStatus.dataset.state = 'error';
+  } finally {
+    profileJsonInput.value = '';
+  }
+});
+
 menuButton.addEventListener('click', () => {
   menuPanel.hidden = !menuPanel.hidden;
   menuButton.setAttribute('aria-expanded', String(!menuPanel.hidden));
@@ -567,6 +680,7 @@ async function startApp() {
       : '—';
     document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
     loadTrackerConnection();
+    loadHub();
     loadCatalog();
   } catch (error) {
     showLoadError(error instanceof Error ? error : new Error('The authentication service is unavailable.'));

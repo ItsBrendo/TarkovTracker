@@ -39,6 +39,7 @@
             <div class="menu-popover" id="user-menu-panel" hidden>
               <p class="menu-caption">OPERATOR // <span id="menu-username">LOADING</span></p>
               <button class="menu-item" type="button" data-view-target="profile">Operator profile</button>
+              <button class="menu-item" type="button" data-view-target="hub">Player hub</button>
               <button class="menu-item" type="button" data-view-target="daily">Daily item</button>
               <button class="menu-item" type="button" data-view-target="settings">Settings</button>
               <button class="menu-item" id="admin-menu-button" type="button" data-view-target="settings" hidden>User management</button>
@@ -56,6 +57,7 @@
 
         <nav class="view-tabs" role="tablist" aria-label="Field log sections">
           <button class="view-tab" id="tab-profile" role="tab" type="button" aria-controls="profile-view" aria-selected="true" data-view-target="profile">Operator profile</button>
+          <button class="view-tab" id="tab-hub" role="tab" type="button" aria-controls="hub-view" aria-selected="false" data-view-target="hub" tabindex="-1">Player hub</button>
           <button class="view-tab" id="tab-daily" role="tab" type="button" aria-controls="daily-view" aria-selected="false" data-view-target="daily" tabindex="-1">Daily item</button>
           <button class="view-tab" id="tab-settings" role="tab" type="button" aria-controls="settings-view" aria-selected="false" data-view-target="settings" tabindex="-1">Settings</button>
         </nav>
@@ -124,6 +126,19 @@
           </section>
         </section>
 
+        <section class="app-view hub-view" id="hub-view" role="tabpanel" aria-labelledby="tab-hub" data-view-panel="hub" hidden>
+          <div class="section-intro">
+            <p class="eyebrow"><span class="eyebrow-rule"></span> PERSONNEL // SHARED FIELD FILES</p>
+            <h1>Player hub<span class="title-period">.</span></h1>
+            <p class="intro-copy">Uploaded profile summaries from your crew.</p>
+          </div>
+          <div class="hub-notice"><strong>PRIVATE CREW DATA</strong><span>Only signed-in members can view this hub. Uploads are reduced to profile stats; raw JSON and equipment data are discarded.</span></div>
+          <section class="hub-list-panel" aria-labelledby="hub-list-title">
+            <div class="panel-heading"><div><p class="eyebrow">FIELD ROSTER</p><h2 id="hub-list-title">Operators</h2></div><span class="record-tag" id="hub-count">0 FILES</span></div>
+            <div class="hub-list" id="hub-list"><p class="tracker-empty">Loading operator files...</p></div>
+          </section>
+        </section>
+
         <section class="app-view daily-view" id="daily-view" role="tabpanel" aria-labelledby="tab-daily" data-view-panel="daily" hidden>
           <section class="intro" aria-labelledby="page-title">
             <div>
@@ -165,15 +180,22 @@
             <div class="panel-heading"><div><p class="eyebrow">CURRENT SESSION</p><h2 id="account-settings-title">Account</h2></div><span class="record-tag" id="settings-role">USER</span></div>
             <dl class="account-details"><div><dt>Username</dt><dd id="settings-username">—</dd></div><div><dt>Role</dt><dd id="settings-role-name">—</dd></div><div><dt>Tracker storage</dt><dd>This browser only</dd></div></dl>
           </section>
-          <section class="settings-panel tracker-api-panel" aria-labelledby="tracker-api-title">
+          <section class="settings-panel tracker-api-panel api-coming-soon" aria-labelledby="tracker-api-title">
             <div class="panel-heading"><div><p class="eyebrow">ACCOUNT LINK // READ ONLY</p><h2 id="tracker-api-title">TarkovTracker progress</h2></div><span class="record-tag" id="tracker-api-badge">NOT LINKED</span></div>
+            <div class="api-coming-banner" role="status"><strong>COMING SOON</strong><span>Automatic API linking is paused while the private profile flow is being finalized.</span></div>
             <p class="tracker-api-copy">Connect a token with Game Progress (GP) read permission. Your token is encrypted server-side and tied to this app login.</p>
             <form id="tracker-api-form" class="tracker-api-form">
               <label for="tracker-api-token">API token</label>
-              <div class="tracker-api-controls"><input id="tracker-api-token" name="token" type="password" autocomplete="off" spellcheck="false" maxlength="512" placeholder="PVE_…" required /><button class="button" type="submit">Connect account</button></div>
+              <div class="tracker-api-controls"><input id="tracker-api-token" name="token" type="password" autocomplete="off" spellcheck="false" maxlength="512" placeholder="PVE_…" required disabled /><button class="button" type="submit" disabled>Connect account</button></div>
             </form>
             <p class="tracker-api-status" id="tracker-api-status" role="status" aria-live="polite">Not connected.</p>
             <button class="text-button tracker-api-disconnect" id="tracker-api-disconnect" type="button" hidden>Disconnect account</button>
+          </section>
+          <section class="settings-panel profile-upload-panel" aria-labelledby="profile-upload-title">
+            <div class="panel-heading"><div><p class="eyebrow">PROFILE EXPORT // LOCAL PARSE</p><h2 id="profile-upload-title">Upload player JSON</h2></div><span class="record-tag">PRIVATE</span></div>
+            <p class="tracker-api-copy">Choose the JSON downloaded from Tarkov.dev Players. The browser extracts profile stats before sending a summary to the private hub; the original file is never uploaded or stored.</p>
+            <label class="file-upload" for="profile-json-input"><span>Choose player export</span><input id="profile-json-input" type="file" accept="application/json,.json" /></label>
+            <p class="tracker-api-status" id="profile-upload-status" role="status" aria-live="polite">No file selected.</p>
           </section>
           <section class="settings-panel motion-panel" aria-labelledby="display-settings-title">
             <div class="panel-heading"><div><p class="eyebrow">DISPLAY // ACCESSIBILITY</p><h2 id="display-settings-title">Ambient effects</h2></div></div>
