@@ -49,3 +49,23 @@ For a local item preview, generate `items.json` using the same catalog query in 
 Tarkov.dev's public API provides shared game data (items, player-level thresholds, skills, tasks, maps, traders, hideout areas, crafts, and barters); it does not provide an individual player's account, stash, raid history, or character statistics. The profile labels this information as public game data and never presents it as a personal API profile.
 
 The deployment workflow writes item details to `items.json` for the Daily item tab and aggregate endpoint counts to `game-data.json` for the operator profile. Personal finds, kills, deaths, and survived raids remain in that browser's `localStorage`; account identity and role come from the authenticated D1 session.
+
+Manual tracker inputs are currently disabled behind a **Coming soon** notice while an automatic player-stat source is investigated. Existing local tracker values are retained and displayed; no data or controls have been removed from the code.
+
+## TarkovTracker Progress
+
+Each app user can connect a TarkovTracker.org API token from **Settings → TarkovTracker progress**. Create a token with **Game Progress (GP)** read permission and the correct mode (`PVE_`, `PVP_`, or `SZN_`). The app validates the token with `GET /token` and reads `GET /progress` for player level, game edition, PMC faction, task/objective progress, and hideout progress. This API does not include K/D or raid counters.
+
+Before enabling connections, add a server-only Cloudflare Pages secret named `PROFILE_TOKEN_ENCRYPTION_KEY` with at least 32 random characters. Use `npx wrangler pages secret put PROFILE_TOKEN_ENCRYPTION_KEY --project-name goons-from-gumtree` and enter the value at Wrangler's hidden prompt. Never commit or share this key. Locally, put it in the git-ignored `.dev.vars` file.
+
+Tokens are encrypted with AES-GCM and stored per app user in D1; progress is reduced to an allowlisted summary before caching. The API is not polled more often than once per 60 seconds and conditional ETags are used. Users can disconnect at any time to delete their encrypted token and cached profile. Rotate any API token previously pasted into chat before connecting it.
+
+## TarkovTracker Progress Connection
+
+Each signed-in user can connect their own TarkovTracker.org API token from **Settings → TarkovTracker progress**. The token must have **Game Progress (GP)** read permission. The integration reads `/progress`, which supplies player level, faction, edition, quest/objective progress, and hideout progress. It does not return K/D or raid counters.
+
+Tokens are encrypted with AES-GCM before being stored in D1, scoped to the app user, and never returned to the browser after connection. The raw TarkovTracker JSON is not retained; only an allowlisted progress summary is cached. Reads are cached for at least 60 seconds and honor the API's ETag/rate-limit guidance.
+
+Before connecting, set the encryption key as a Cloudflare Pages secret: `npx wrangler pages secret put PROFILE_TOKEN_ENCRYPTION_KEY --project-name goons-from-gumtree`. Enter a randomly generated secret of at least 32 characters at the prompt; keep it private and never commit it. For local development, put the same kind of secret in the git-ignored `.dev.vars` file.
+
+The API token previously pasted into chat should be revoked and replaced before use. Enter the replacement directly in the authenticated Settings form; do not put it in source code, a command, or browser storage. Disconnecting removes that user's encrypted token and cached progress.

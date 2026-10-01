@@ -1,5 +1,6 @@
 const TRACKER_STORAGE_KEY = 'tarkov-field-log.tracker.v1';
 const DAILY_STORAGE_KEY = 'tarkov-field-log.selection.v1';
+const TRACKING_ENABLED = false;
 
 // Add exact Tarkov.dev item names here to restrict the daily selection.
 const ITEM_NAMES = [];
@@ -16,6 +17,11 @@ const signedInAs = document.querySelector('#signed-in-as');
 const menuButton = document.querySelector('#menu-button');
 const menuPanel = document.querySelector('#user-menu-panel');
 const motionToggle = document.querySelector('#motion-toggle');
+const trackerApiForm = document.querySelector('#tracker-api-form');
+const trackerApiTokenInput = document.querySelector('#tracker-api-token');
+const trackerApiStatus = document.querySelector('#tracker-api-status');
+const trackerApiBadge = document.querySelector('#tracker-api-badge');
+const trackerApiDisconnect = document.querySelector('#tracker-api-disconnect');
 const viewTabs = [...document.querySelectorAll('.view-tab')];
 const viewPanels = [...document.querySelectorAll('[data-view-panel]')];
 
@@ -23,6 +29,7 @@ let catalog = [];
 let currentItem = null;
 let catalogGeneratedAt = '';
 let gameData = null;
+let currentUser = null;
 let trackerData = readTrackerData();
 
 const TRACKED_STATS = [
@@ -71,31 +78,6 @@ function setView(viewName, focusTab = false) {
 }
 
 function renderProfile() {
-  const records = Object.entries(trackerData).map(([id, saved]) => ({
-    id,
-    found: Math.max(0, Number(saved?.found) || 0),
-    kills: Math.max(0, Number(saved?.kills) || 0),
-    deaths: Math.max(0, Number(saved?.deaths) || 0),
-    survived: Math.max(0, Number(saved?.survived) || 0)
-  }));
-  const totals = records.reduce((sum, record) => {
-    for (const key of ['found', 'kills', 'deaths', 'survived']) sum[key] += record[key];
-    return sum;
-  }, { found: 0, kills: 0, deaths: 0, survived: 0 });
-  const tracked = records.filter((record) => record.found + record.kills + record.deaths + record.survived > 0);
-  const raids = totals.deaths + totals.survived;
-  const killDeathRatio = totals.kills / Math.max(1, totals.deaths);
-  const survivalRate = raids ? (totals.survived / raids) * 100 : 0;
-
-  document.querySelector('#stat-items').textContent = formatNumber(tracked.length);
-  document.querySelector('#stat-found').textContent = formatNumber(totals.found);
-  document.querySelector('#stat-kills').textContent = formatNumber(totals.kills);
-  document.querySelector('#stat-deaths').textContent = formatNumber(totals.deaths);
-  document.querySelector('#stat-raids').textContent = formatNumber(raids);
-  document.querySelector('#stat-survived').textContent = formatNumber(totals.survived);
-  document.querySelector('#stat-kd').textContent = killDeathRatio.toFixed(2);
-  document.querySelector('#stat-survival-rate').textContent = `${Math.round(survivalRate)}%`;
-
   const apiTotals = {
     items: gameData?.items ?? catalog.length,
     itemCategories: gameData?.itemCategories,
@@ -129,6 +111,121 @@ function renderProfile() {
     : 'Snapshot date unavailable';
   document.querySelector('#catalog-state').textContent = gameData ? 'FULL' : 'ITEMS';
 }
+
+function setTrackerApiStatus(message, state = '') {
+  trackerApiStatus.textContent = message;
+  trackerApiStatus.dataset.state = state;
+}
+
+function setProgressPlaceholders() {
+  for (const id of ['stat-level', 'stat-quests', 'stat-objectives', 'stat-modules', 'stat-hideout-parts', 'stat-faction', 'stat-edition', 'stat-mode']) {
+    document.querySelector(`#${id}`).textContent = '—';
+  }
+  document.querySelector('#record-data-source').textContent = 'Awaiting Tracker API connection';
+  if (currentUser) document.querySelector('#profile-name').textContent = currentUser.username;
+}
+
+function renderTrackerProgress(result) {
+  const profile = result.profile;
+  const completed = (entries) => entries.filter((entry) => entry.complete).length;
+  const objectives = completed(profile.taskObjectivesProgress || []);
+  const modules = completed(profile.hideoutModulesProgress || []);
+  const parts = completed(profile.hideoutPartsProgress || []);
+  const modeName = { pvp: 'PVP', pve: 'PVE', seasonal: 'SEASONAL' }[result.gameMode] || result.gameMode.toUpperCase();
+
+  document.querySelector('#profile-name').textContent = profile.displayName || currentUser.username;
+  document.querySelector('#stat-level').textContent = profile.playerLevel == null ? '—' : formatNumber(profile.playerLevel);
+  document.querySelector('#stat-quests').textContent = formatNumber(completed(profile.tasksProgress || []));
+  document.querySelector('#stat-objectives').textContent = formatNumber(objectives);
+  document.querySelector('#stat-modules').textContent = formatNumber(modules);
+  document.querySelector('#stat-hideout-parts').textContent = formatNumber(parts);
+  document.querySelector('#stat-faction').textContent = profile.pmcFaction || '—';
+  document.querySelector('#stat-edition').textContent = profile.gameEdition == null ? '—' : formatNumber(profile.gameEdition);
+  document.querySelector('#stat-mode').textContent = modeName;
+  document.querySelector('#record-username').textContent = profile.displayName || currentUser.username;
+  document.querySelector('#record-data-source').textContent = `TarkovTracker API // ${modeName}`;
+  setTrackerApiStatus(`Progress synced ${new Date(result.fetchedAt * 1000).toLocaleString()}.`, 'connected');
+}
+
+async function loadTrackerProgress() {
+  const response = await fetch('/api/profile/progress', {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store'
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Could not load TarkovTracker progress.');
+  if (!result.connected || !result.profile) {
+    setProgressPlaceholders();
+    setTrackerApiStatus('Not connected. Add your TarkovTracker API token in Settings.');
+    return;
+  }
+  renderTrackerProgress(result);
+}
+
+async function loadTrackerConnection() {
+  try {
+    const response = await fetch('/api/profile/token', { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    const connection = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(connection.error || 'Could not read token connection.');
+    trackerApiBadge.textContent = connection.connected ? `${connection.gameMode.toUpperCase()} LINKED` : 'NOT LINKED';
+    trackerApiDisconnect.hidden = !connection.connected;
+    if (!connection.connected) {
+      setProgressPlaceholders();
+      setTrackerApiStatus(connection.setupRequired
+        ? 'Site setup required: the owner must configure token encryption before connecting.'
+        : 'Not connected. Add your TarkovTracker API token in Settings.');
+      return;
+    }
+    setTrackerApiStatus('Fetching your saved TarkovTracker progress...');
+    await loadTrackerProgress();
+  } catch (error) {
+    setProgressPlaceholders();
+    setTrackerApiStatus(error.message, 'error');
+  }
+}
+
+trackerApiForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!trackerApiForm.reportValidity()) return;
+  const submitButton = trackerApiForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  setTrackerApiStatus('Validating token and read permission...');
+  try {
+    const response = await fetch('/api/profile/token', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ token: trackerApiTokenInput.value.trim() })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not connect the API token.');
+    trackerApiTokenInput.value = '';
+    trackerApiBadge.textContent = `${result.gameMode.toUpperCase()} LINKED`;
+    trackerApiDisconnect.hidden = false;
+    setTrackerApiStatus('Token encrypted and connected. Loading progress...', 'connected');
+    await loadTrackerProgress();
+  } catch (error) {
+    setTrackerApiStatus(error instanceof TypeError ? 'Could not reach the local profile service.' : error.message, 'error');
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+trackerApiDisconnect.addEventListener('click', async () => {
+  trackerApiDisconnect.disabled = true;
+  try {
+    const response = await fetch('/api/profile/token', { method: 'DELETE', headers: { Accept: 'application/json' } });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not disconnect the API token.');
+    trackerApiBadge.textContent = 'NOT LINKED';
+    trackerApiDisconnect.hidden = true;
+    setProgressPlaceholders();
+    setTrackerApiStatus('Disconnected. The encrypted token and cached progress were deleted.');
+  } catch (error) {
+    setTrackerApiStatus(error.message, 'error');
+  } finally {
+    trackerApiDisconnect.disabled = false;
+  }
+});
 
 function normalizeName(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -298,12 +395,12 @@ function renderTracker() {
     <div class="tracker-row">
       <span class="tracker-label">${label}</span>
       <div class="tracker-controls" aria-label="${label}">
-        <button class="count-button" type="button" data-stat="${key}" data-delta="-1" aria-label="Decrease ${label}" ${stats[key] === 0 ? 'disabled' : ''}>−</button>
+        <button class="count-button" type="button" data-stat="${key}" data-delta="-1" aria-label="Decrease ${label}" ${!TRACKING_ENABLED || stats[key] === 0 ? 'disabled' : ''}>−</button>
         <span class="count-value" aria-live="polite">${stats[key]}</span>
-        <button class="count-button" type="button" data-stat="${key}" data-delta="1" aria-label="Increase ${label}">+</button>
+        <button class="count-button" type="button" data-stat="${key}" data-delta="1" aria-label="Increase ${label}" ${!TRACKING_ENABLED ? 'disabled' : ''}>+</button>
       </div>
     </div>`).join('');
-  resetButton.disabled = false;
+  resetButton.disabled = !TRACKING_ENABLED;
 }
 
 function renderCurrentItem(item) {
@@ -312,7 +409,7 @@ function renderCurrentItem(item) {
   renderTracker();
   renderProfile();
   rerollButton.disabled = catalog.length < 2;
-  resetButton.disabled = false;
+  resetButton.disabled = !TRACKING_ENABLED;
   const updated = catalogGeneratedAt ? ` / SNAPSHOT ${catalogGeneratedAt.slice(0, 10)}` : '';
   setStatus(`ITEM DATABASE READY / ${catalog.length.toLocaleString()} ITEMS AVAILABLE${updated}`);
 }
@@ -371,6 +468,7 @@ trackerRegion.addEventListener('click', (event) => {
 
   const { stat } = button.dataset;
   const delta = Number(button.dataset.delta);
+  if (!TRACKING_ENABLED) return;
   const counts = getItemStats(currentItem);
   if (!Object.hasOwn(counts, stat) || !Number.isFinite(delta)) return;
   counts[stat] = Math.max(0, counts[stat] + delta);
@@ -381,7 +479,7 @@ trackerRegion.addEventListener('click', (event) => {
 });
 
 resetButton.addEventListener('click', () => {
-  if (!currentItem) return;
+  if (!TRACKING_ENABLED || !currentItem) return;
   if (!window.confirm(`Reset all counts for ${getDisplayName(currentItem)}?`)) return;
   delete trackerData[currentItem.id];
   saveTrackerData();
@@ -451,6 +549,7 @@ async function startApp() {
     }
     if (!response.ok) throw new Error('The authentication service is unavailable.');
     const { user } = await response.json();
+    currentUser = user;
     signedInAs.textContent = user.username;
     document.querySelector('#menu-username').textContent = user.username.toUpperCase();
     document.querySelector('#profile-name').textContent = user.username;
@@ -467,6 +566,7 @@ async function startApp() {
       ? new Date(user.created_at * 1000).toLocaleDateString()
       : '—';
     document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
+    loadTrackerConnection();
     loadCatalog();
   } catch (error) {
     showLoadError(error instanceof Error ? error : new Error('The authentication service is unavailable.'));

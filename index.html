@@ -71,15 +71,15 @@
             <div class="operator-stamp"><span class="live-dot" aria-hidden="true"></span><span>ACTIVE<br />PERSONNEL</span></div>
           </div>
 
-          <section class="operator-stats" aria-label="Your tracker record">
-            <article class="operator-stat"><span class="operator-stat-label">Tracked items</span><strong id="stat-items">0</strong><span class="operator-stat-note">unique records</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Finds</span><strong id="stat-found">0</strong><span class="operator-stat-note">logged by you</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Kills</span><strong id="stat-kills">0</strong><span class="operator-stat-note">personal record</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Deaths</span><strong id="stat-deaths">0</strong><span class="operator-stat-note">personal record</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Raids logged</span><strong id="stat-raids">0</strong><span class="operator-stat-note">survived + deaths</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Survived</span><strong id="stat-survived">0</strong><span class="operator-stat-note">logged raids</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">K/D ratio</span><strong id="stat-kd">0.00</strong><span class="operator-stat-note">from field ledger</span></article>
-            <article class="operator-stat"><span class="operator-stat-label">Survival rate</span><strong id="stat-survival-rate">0%</strong><span class="operator-stat-note">from field ledger</span></article>
+          <section class="operator-stats" aria-label="TarkovTracker account progress">
+            <article class="operator-stat"><span class="operator-stat-label">Player level</span><strong id="stat-level">—</strong><span class="operator-stat-note">TarkovTracker</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Quests complete</span><strong id="stat-quests">—</strong><span class="operator-stat-note">saved progression</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Objectives complete</span><strong id="stat-objectives">—</strong><span class="operator-stat-note">saved progression</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Hideout modules</span><strong id="stat-modules">—</strong><span class="operator-stat-note">complete</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Hideout parts</span><strong id="stat-hideout-parts">—</strong><span class="operator-stat-note">complete</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">PMC faction</span><strong id="stat-faction">—</strong><span class="operator-stat-note">TarkovTracker</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Game edition</span><strong id="stat-edition">—</strong><span class="operator-stat-note">TarkovTracker</span></article>
+            <article class="operator-stat"><span class="operator-stat-label">Game mode</span><strong id="stat-mode">—</strong><span class="operator-stat-note">API token</span></article>
           </section>
 
           <div class="profile-grid">
@@ -92,7 +92,7 @@
                 <div><dt>Username</dt><dd id="record-username">—</dd></div>
                 <div><dt>Access level</dt><dd id="record-role">—</dd></div>
                 <div><dt>Personnel since</dt><dd id="record-created">—</dd></div>
-                <div><dt>Data source</dt><dd>Personal field ledger</dd></div>
+                <div><dt>Progress source</dt><dd id="record-data-source">TarkovTracker API</dd></div>
               </dl>
             </section>
             <section class="profile-panel profile-catalog" aria-labelledby="catalog-title">
@@ -144,6 +144,11 @@
                 <div><p class="eyebrow">PERSONAL RECORD</p><h2 id="tracker-title">Field tracker</h2></div>
                 <span class="record-tag">LOCAL</span>
               </div>
+              <div class="tracker-coming-soon" role="status">
+                <span class="tracker-lock" aria-hidden="true">//</span>
+                <div><strong>COMING SOON</strong><span>Automatic operator-stat integration is being explored.</span></div>
+                <span class="record-tag">LOCKED</span>
+              </div>
               <div id="tracker-region" class="tracker-region"><p class="tracker-empty">Your counts for today's item will appear here.</p></div>
               <div class="tracker-footer"><span>Saved on this device</span><button class="text-button" id="reset-button" type="button" disabled>Reset counts</button></div>
             </section>
@@ -159,6 +164,16 @@
           <section class="settings-panel" aria-labelledby="account-settings-title">
             <div class="panel-heading"><div><p class="eyebrow">CURRENT SESSION</p><h2 id="account-settings-title">Account</h2></div><span class="record-tag" id="settings-role">USER</span></div>
             <dl class="account-details"><div><dt>Username</dt><dd id="settings-username">—</dd></div><div><dt>Role</dt><dd id="settings-role-name">—</dd></div><div><dt>Tracker storage</dt><dd>This browser only</dd></div></dl>
+          </section>
+          <section class="settings-panel tracker-api-panel" aria-labelledby="tracker-api-title">
+            <div class="panel-heading"><div><p class="eyebrow">ACCOUNT LINK // READ ONLY</p><h2 id="tracker-api-title">TarkovTracker progress</h2></div><span class="record-tag" id="tracker-api-badge">NOT LINKED</span></div>
+            <p class="tracker-api-copy">Connect a token with Game Progress (GP) read permission. Your token is encrypted server-side and tied to this app login.</p>
+            <form id="tracker-api-form" class="tracker-api-form">
+              <label for="tracker-api-token">API token</label>
+              <div class="tracker-api-controls"><input id="tracker-api-token" name="token" type="password" autocomplete="off" spellcheck="false" maxlength="512" placeholder="PVE_…" required /><button class="button" type="submit">Connect account</button></div>
+            </form>
+            <p class="tracker-api-status" id="tracker-api-status" role="status" aria-live="polite">Not connected.</p>
+            <button class="text-button tracker-api-disconnect" id="tracker-api-disconnect" type="button" hidden>Disconnect account</button>
           </section>
           <section class="settings-panel motion-panel" aria-labelledby="display-settings-title">
             <div class="panel-heading"><div><p class="eyebrow">DISPLAY // ACCESSIBILITY</p><h2 id="display-settings-title">Ambient effects</h2></div></div>

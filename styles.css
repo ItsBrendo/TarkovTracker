@@ -97,6 +97,12 @@ h1 { margin-bottom: 2px; font-size: clamp(42px, 6vw, 68px); line-height: 0.97; t
 .panel-heading h2 { margin: 0; font-size: 26px; text-transform: uppercase; }
 .record-tag { padding: 5px 7px; border: 1px solid rgba(138, 167, 119, 0.35); color: #9bb58a; }
 .tracker-region { display: grid; flex: 1; align-content: center; }
+.tracker-coming-soon { min-height: 54px; display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; gap: 10px; margin-top: 13px; padding: 9px 11px; border: 1px solid rgba(150, 174, 177, 0.25); background: rgba(150, 174, 177, 0.055); }
+.tracker-lock { color: var(--accent); font-family: "Barlow Condensed", Impact, sans-serif; font-size: 16px; }
+.tracker-coming-soon > div { min-width: 0; display: grid; gap: 5px; }
+.tracker-coming-soon strong { color: var(--accent-bright); font-size: 8px; font-weight: 500; }
+.tracker-coming-soon > div > span { color: var(--muted); font-size: 8px; line-height: 1.5; }
+.tracker-coming-soon .record-tag { color: var(--faint); font-size: 8px; }
 .tracker-empty { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
 .tracker-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 66px; border-bottom: 1px solid var(--line); }
 .tracker-label { color: var(--ink); font-size: 11px; }
@@ -184,6 +190,18 @@ h1 { margin-bottom: 2px; font-size: clamp(42px, 6vw, 68px); line-height: 0.97; t
 .account-details div { min-width: 0; display: grid; gap: 8px; }
 .account-details dt { color: var(--faint); font-size: 8px; text-transform: uppercase; }
 .account-details dd { margin: 0; overflow-wrap: anywhere; color: var(--ink); font-size: 10px; }
+.tracker-api-copy { margin: 14px 0; color: var(--muted); font-size: 9px; line-height: 1.7; }
+.tracker-api-form { display: grid; gap: 8px; }
+.tracker-api-form label { color: var(--faint); font-size: 8px; text-transform: uppercase; }
+.tracker-api-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.tracker-api-controls input { min-width: 0; min-height: 42px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 0; outline: 0; background: rgba(255, 255, 255, 0.035); color: var(--ink); font: inherit; font-size: 10px; }
+.tracker-api-controls input:focus { border-color: var(--accent); }
+.tracker-api-controls .button { min-width: 150px; }
+.tracker-api-status { min-height: 16px; margin: 10px 0 0; color: var(--muted); font-size: 9px; }
+.tracker-api-status[data-state="error"] { color: var(--danger); }
+.tracker-api-status[data-state="connected"] { color: #a8c0aa; }
+.tracker-api-disconnect { margin-top: 4px; color: #d69a8b; }
+.tracker-api-disconnect[hidden] { display: none; }
 .setting-toggle { min-height: 65px; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-top: 13px; cursor: pointer; }
 .setting-toggle span { display: grid; gap: 6px; }
 .setting-toggle strong { color: var(--ink); font-size: 10px; font-weight: 500; }
@@ -255,6 +273,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent-bright);
   .item-details { padding: 24px 20px; }
   .item-name { margin-bottom: 19px; font-size: 36px; }
   .tracker-panel { min-height: 340px; padding: 20px 18px 15px; }
+  .tracker-coming-soon { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 7px; padding-inline: 8px; }
   .operator-hero { min-height: 150px; align-items: flex-start; gap: 16px; padding: 18px 0 22px; }
   .operator-avatar { width: 56px; height: 56px; font-size: 23px; }
   .operator-copy .eyebrow { font-size: 8px; }
@@ -271,6 +290,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--accent-bright);
   .profile-panel { padding-inline: 14px; }
   .account-details { grid-template-columns: 1fr 1fr; }
   .account-details div:last-child { grid-column: 1 / -1; }
+  .tracker-api-controls { grid-template-columns: 1fr; }
+  .tracker-api-controls .button { width: 100%; }
   .menu-popover { right: 0; width: min(238px, calc(100vw - 32px)); }
   .admin-panel { padding: 19px 14px 15px; }
   .admin-create-form { grid-template-columns: 1fr 1fr; }
