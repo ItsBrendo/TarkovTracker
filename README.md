@@ -69,3 +69,25 @@ Tokens are encrypted with AES-GCM before being stored in D1, scoped to the app u
 Before connecting, set the encryption key as a Cloudflare Pages secret: `npx wrangler pages secret put PROFILE_TOKEN_ENCRYPTION_KEY --project-name goons-from-gumtree`. Enter a randomly generated secret of at least 32 characters at the prompt; keep it private and never commit it. For local development, put the same kind of secret in the git-ignored `.dev.vars` file.
 
 The API token previously pasted into chat should be revoked and replaced before use. Enter the replacement directly in the authenticated Settings form; do not put it in source code, a command, or browser storage. Disconnecting removes that user's encrypted token and cached progress.
+
+## Player JSON upload and the Operator profile
+
+Uploading a player export in **Settings → Upload player JSON** extracts a bounded summary — PMC/scav counters, skills, mastery, achievements, battle pass, seasonal rewards, player level, registration date, quest completion counts, hideout area/level counts, stash item count, and encyclopedia (identified item) count — before sending it to the private hub. The original file never leaves the browser.
+
+The **Operator profile** tab shows these uploaded stats (player level, quests complete, hideout areas/levels, faction, upload time) whenever TarkovTracker API progress isn't connected, since the JSON upload is the active data source. Connecting a live TarkovTracker API token still takes priority when available.
+
+## Discord notifications
+
+Two Discord notifications are available:
+
+- **Upload notification**: posted immediately whenever a user uploads or updates their player JSON.
+- **Due-for-upload reminder**: a crew member is reminded once they haven't uploaded in 24+ hours. Since Cloudflare Pages Functions have no native cron trigger, the check runs from the scheduled `.github/workflows/discord-reminders.yml` GitHub Actions workflow (hourly), which calls the protected `POST /api/notify/due` endpoint.
+
+Setup:
+
+1. Create a Discord webhook URL in the target channel (Channel settings → Integrations → Webhooks).
+2. Set it as a Cloudflare Pages secret: `npx wrangler pages secret put DISCORD_WEBHOOK_URL --project-name goons-from-gumtree`. Add the same value to the git-ignored `.dev.vars` file for local development.
+3. Generate a random secret (32+ characters) and set it as a Cloudflare Pages secret: `npx wrangler pages secret put CRON_SECRET --project-name goons-from-gumtree`. Add it to `.dev.vars` locally too.
+4. Add two GitHub Actions repository secrets: `SITE_URL` (the deployed site origin, e.g. `https://goons-from-gumtree.pages.dev`) and `CRON_SECRET` (the same value from step 3).
+
+Without `DISCORD_WEBHOOK_URL` configured, notifications are silently skipped. Without `CRON_SECRET` configured, `/api/notify/due` returns `503` and the scheduled workflow fails loudly instead of running unauthenticated.

@@ -1,4 +1,5 @@
 import { errorResponse, jsonResponse, readJson, sameOrigin } from '../../_lib/auth.js';
+import { sendDiscordMessage } from '../../_lib/discord.js';
 
 function numberOrNull(value, integer = false) {
   const number = Number(value);
@@ -20,6 +21,56 @@ function safeList(value, fields) {
     }
     return result;
   });
+}
+
+function questSummary(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value) && (Number.isFinite(value.completed) || Number.isFinite(value.total))) {
+    return {
+      completed: numberOrNull(value.completed, true) || 0,
+      started: numberOrNull(value.started, true) || 0,
+      failed: numberOrNull(value.failed, true) || 0,
+      total: numberOrNull(value.total, true) || 0
+    };
+  }
+  const quests = Array.isArray(value) ? value : [];
+  const summary = { completed: 0, started: 0, failed: 0, total: quests.length };
+  for (const quest of quests) {
+    const status = String(quest?.status || '').toLowerCase();
+    if (status === 'success') summary.completed += 1;
+    else if (status === 'fail' || status === 'failed') summary.failed += 1;
+    else if (status === 'started') summary.started += 1;
+  }
+  return summary;
+}
+
+function hideoutSummary(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value) && !Array.isArray(value.Areas)) {
+    return {
+      areasBuilt: numberOrNull(value.areasBuilt, true) || 0,
+      maxLevel: numberOrNull(value.maxLevel, true) || 0,
+      totalLevels: numberOrNull(value.totalLevels, true) || 0
+    };
+  }
+  const areas = Array.isArray(value?.Areas) ? value.Areas : [];
+  let maxLevel = 0;
+  let totalLevels = 0;
+  let built = 0;
+  for (const area of areas) {
+    const level = numberOrNull(area?.level, true) || 0;
+    if (level > 0) built += 1;
+    if (level > maxLevel) maxLevel = level;
+    totalLevels += level;
+  }
+  return { areasBuilt: built, maxLevel, totalLevels };
+}
+
+function inventorySummary(value) {
+  const items = Array.isArray(value?.items) ? value.items : [];
+  return { itemCount: items.length };
+}
+
+function encyclopediaCount(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value).length : 0;
 }
 
 function counterSet(stats) {
@@ -59,27 +110,38 @@ function normalizeProfile(body) {
   const rewards = profile.seasonalRewards || {};
   const displayName = safeText(info.nickname, 32);
   if (!displayName) return null;
+  const quests = questSummary(profile.Quests || profile.quests);
+  const hideout = hideoutSummary(profile.Hideout || profile.hideout);
+  const inventory = inventorySummary(profile.Inventory || profile.inventory);
   return {
     displayName,
     accountId: numberOrNull(profile.aid, true),
     side: safeText(info.side, 16),
+    level: numberOrNull(info.level, true),
     experience: numberOrNull(info.experience, true),
     prestigeLevel: numberOrNull(info.prestigeLevel, true),
+    registrationDate: numberOrNull(info.registrationDate, true),
     pmc, scav, skills, mastering,
     achievementsCount: profile.achievements && typeof profile.achievements === 'object' ? Object.keys(profile.achievements).length : 0,
     battlePass,
-    seasonalRewards: { completed: numberOrNull(rewards.completed, true), total: numberOrNull(rewards.total, true) }
+    seasonalRewards: { completed: numberOrNull(rewards.completed, true), total: numberOrNull(rewards.total, true) },
+    quests, hideout, inventory,
+    encyclopediaCount: encyclopediaCount(profile.Encyclopedia || profile.encyclopedia)
   };
 }
 
 function publicProfile(row) {
   return {
     userId: row.user_id, displayName: row.display_name, accountId: row.account_id, side: row.side,
-    experience: row.experience, prestigeLevel: row.prestige_level,
+    level: row.level, experience: row.experience, prestigeLevel: row.prestige_level, registrationDate: row.registration_date,
     pmc: { sessions: row.pmc_sessions, survived: row.pmc_survived, kills: row.pmc_kills, deaths: row.pmc_deaths, killedPmc: row.pmc_killed_pmc },
     scav: { sessions: row.scav_sessions, survived: row.scav_survived, kills: row.scav_kills, deaths: row.scav_deaths, killedPmc: row.scav_killed_pmc },
     skills: JSON.parse(row.skills_json), mastering: JSON.parse(row.mastering_json), achievementsCount: row.achievements_count,
-    battlePass: JSON.parse(row.battle_pass_json), seasonalRewards: { completed: row.seasonal_rewards_completed, total: row.seasonal_rewards_total }, uploadedAt: row.uploaded_at
+    battlePass: JSON.parse(row.battle_pass_json), seasonalRewards: { completed: row.seasonal_rewards_completed, total: row.seasonal_rewards_total },
+    quests: { completed: row.quests_completed, started: row.quests_started, failed: row.quests_failed, total: row.quests_total },
+    hideout: { areasBuilt: row.hideout_areas_built, maxLevel: row.hideout_max_level, totalLevels: row.hideout_total_levels },
+    inventoryItemCount: row.inventory_item_count, encyclopediaCount: row.encyclopedia_count,
+    uploadedAt: row.uploaded_at
   };
 }
 
@@ -98,16 +160,25 @@ export async function onRequestPut(context) {
   if (!normalized) return errorResponse('The uploaded file is not a supported TarkovTracker player export.');
   const now = Math.floor(Date.now() / 1000);
   try {
+    const previous = await context.env.DB.prepare('SELECT uploaded_at FROM player_profiles WHERE user_id = ?1').bind(context.data.user.id).first();
     await context.env.DB.prepare(`
-      INSERT INTO player_profiles (user_id, display_name, account_id, side, experience, prestige_level, pmc_sessions, pmc_survived, pmc_kills, pmc_deaths, pmc_killed_pmc, scav_sessions, scav_survived, scav_kills, scav_deaths, scav_killed_pmc, skills_json, mastering_json, achievements_count, battle_pass_json, seasonal_rewards_completed, seasonal_rewards_total, uploaded_at, updated_at)
-      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?23)
-      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, account_id = excluded.account_id, side = excluded.side, experience = excluded.experience, prestige_level = excluded.prestige_level, pmc_sessions = excluded.pmc_sessions, pmc_survived = excluded.pmc_survived, pmc_kills = excluded.pmc_kills, pmc_deaths = excluded.pmc_deaths, pmc_killed_pmc = excluded.pmc_killed_pmc, scav_sessions = excluded.scav_sessions, scav_survived = excluded.scav_survived, scav_kills = excluded.scav_kills, scav_deaths = excluded.scav_deaths, scav_killed_pmc = excluded.scav_killed_pmc, skills_json = excluded.skills_json, mastering_json = excluded.mastering_json, achievements_count = excluded.achievements_count, battle_pass_json = excluded.battle_pass_json, seasonal_rewards_completed = excluded.seasonal_rewards_completed, seasonal_rewards_total = excluded.seasonal_rewards_total, uploaded_at = excluded.uploaded_at, updated_at = excluded.updated_at
+      INSERT INTO player_profiles (user_id, display_name, account_id, side, level, experience, prestige_level, registration_date, pmc_sessions, pmc_survived, pmc_kills, pmc_deaths, pmc_killed_pmc, scav_sessions, scav_survived, scav_kills, scav_deaths, scav_killed_pmc, skills_json, mastering_json, achievements_count, battle_pass_json, seasonal_rewards_completed, seasonal_rewards_total, quests_completed, quests_started, quests_failed, quests_total, hideout_areas_built, hideout_max_level, hideout_total_levels, inventory_item_count, encyclopedia_count, last_reminder_at, uploaded_at, updated_at)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, NULL, ?34, ?34)
+      ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, account_id = excluded.account_id, side = excluded.side, level = excluded.level, experience = excluded.experience, prestige_level = excluded.prestige_level, registration_date = excluded.registration_date, pmc_sessions = excluded.pmc_sessions, pmc_survived = excluded.pmc_survived, pmc_kills = excluded.pmc_kills, pmc_deaths = excluded.pmc_deaths, pmc_killed_pmc = excluded.pmc_killed_pmc, scav_sessions = excluded.scav_sessions, scav_survived = excluded.scav_survived, scav_kills = excluded.scav_kills, scav_deaths = excluded.scav_deaths, scav_killed_pmc = excluded.scav_killed_pmc, skills_json = excluded.skills_json, mastering_json = excluded.mastering_json, achievements_count = excluded.achievements_count, battle_pass_json = excluded.battle_pass_json, seasonal_rewards_completed = excluded.seasonal_rewards_completed, seasonal_rewards_total = excluded.seasonal_rewards_total, quests_completed = excluded.quests_completed, quests_started = excluded.quests_started, quests_failed = excluded.quests_failed, quests_total = excluded.quests_total, hideout_areas_built = excluded.hideout_areas_built, hideout_max_level = excluded.hideout_max_level, hideout_total_levels = excluded.hideout_total_levels, inventory_item_count = excluded.inventory_item_count, encyclopedia_count = excluded.encyclopedia_count, last_reminder_at = NULL, uploaded_at = excluded.uploaded_at, updated_at = excluded.updated_at
     `).bind(
-      context.data.user.id, normalized.displayName, normalized.accountId, normalized.side, normalized.experience, normalized.prestigeLevel,
+      context.data.user.id, normalized.displayName, normalized.accountId, normalized.side, normalized.level, normalized.experience, normalized.prestigeLevel, normalized.registrationDate,
       normalized.pmc.Sessions, normalized.pmc.ExitStatus, normalized.pmc.Kills, normalized.pmc.Deaths, normalized.pmc.KilledPmc,
       normalized.scav.Sessions, normalized.scav.ExitStatus, normalized.scav.Kills, normalized.scav.Deaths, normalized.scav.KilledPmc,
-      JSON.stringify(normalized.skills), JSON.stringify(normalized.mastering), normalized.achievementsCount, JSON.stringify(normalized.battlePass), normalized.seasonalRewards.completed, normalized.seasonalRewards.total, now
+      JSON.stringify(normalized.skills), JSON.stringify(normalized.mastering), normalized.achievementsCount, JSON.stringify(normalized.battlePass), normalized.seasonalRewards.completed, normalized.seasonalRewards.total,
+      normalized.quests.completed, normalized.quests.started, normalized.quests.failed, normalized.quests.total,
+      normalized.hideout.areasBuilt, normalized.hideout.maxLevel, normalized.hideout.totalLevels,
+      normalized.inventory.itemCount, normalized.encyclopediaCount, now
     ).run();
+    const hoursSincePrevious = previous?.uploaded_at ? Math.round((now - previous.uploaded_at) / 3600) : null;
+    const notice = hoursSincePrevious == null
+      ? `🆕 **${normalized.displayName}** uploaded their first field report.`
+      : `📤 **${normalized.displayName}** updated their field report (${hoursSincePrevious}h since last upload).`;
+    context.waitUntil(sendDiscordMessage(context.env.DISCORD_WEBHOOK_URL, notice));
     return jsonResponse({ profile: { ...normalized, uploadedAt: now } });
   } catch { return errorResponse('Could not save the uploaded player profile.', 503); }
 }

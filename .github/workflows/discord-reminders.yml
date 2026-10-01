@@ -1,0 +1,25 @@
+# Checks for crew members overdue on a field report upload and notifies Discord.
+# Cloudflare Pages Functions have no native cron trigger, so this runs the check on a schedule instead.
+name: Discord upload reminders
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check-due:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the due-upload check endpoint
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            -X POST \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            "$SITE_URL/api/notify/due"

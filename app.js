@@ -35,6 +35,7 @@ let currentItem = null;
 let catalogGeneratedAt = '';
 let gameData = null;
 let currentUser = null;
+let trackerConnected = false;
 let trackerData = readTrackerData();
 
 const TRACKED_STATS = [
@@ -96,16 +97,46 @@ function countPlayerCounters(stats) {
   return result;
 }
 
+function summarizeQuests(value) {
+  const quests = Array.isArray(value) ? value : [];
+  const summary = { completed: 0, started: 0, failed: 0, total: quests.length };
+  for (const quest of quests) {
+    const status = String(quest?.status || '').toLowerCase();
+    if (status === 'success') summary.completed += 1;
+    else if (status === 'fail' || status === 'failed') summary.failed += 1;
+    else if (status === 'started') summary.started += 1;
+  }
+  return summary;
+}
+
+function summarizeHideout(value) {
+  const areas = Array.isArray(value?.Areas) ? value.Areas : [];
+  let maxLevel = 0;
+  let totalLevels = 0;
+  let built = 0;
+  for (const area of areas) {
+    const level = Math.max(0, Number(area?.level) || 0);
+    if (level > 0) built += 1;
+    if (level > maxLevel) maxLevel = level;
+    totalLevels += level;
+  }
+  return { areasBuilt: built, maxLevel, totalLevels };
+}
+
 function normalizeUploadedProfile(profile) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile) || !profile.info?.nickname) return null;
   const list = (value, fields) => Array.isArray(value) ? value.slice(0, 100).map((entry) => Object.fromEntries(fields
     .filter((field) => typeof entry?.[field] === 'string' || Number.isFinite(entry?.[field]))
     .map((field) => [field, entry[field]]))) : [];
+  const inventoryItems = (profile.Inventory || profile.inventory)?.items;
+  const encyclopedia = profile.Encyclopedia || profile.encyclopedia;
   return {
     info: {
       nickname: String(profile.info.nickname).slice(0, 32), side: String(profile.info.side || '').slice(0, 16),
+      level: Number.isFinite(profile.info.level) ? profile.info.level : null,
       experience: Number.isFinite(profile.info.experience) ? profile.info.experience : null,
-      prestigeLevel: Number.isFinite(profile.info.prestigeLevel) ? profile.info.prestigeLevel : null
+      prestigeLevel: Number.isFinite(profile.info.prestigeLevel) ? profile.info.prestigeLevel : null,
+      registrationDate: Number.isFinite(profile.info.registrationDate) ? profile.info.registrationDate : null
     },
     aid: Number.isFinite(profile.aid) ? profile.aid : null,
     pmcStats: countPlayerCounters(profile.pmcStats),
@@ -119,7 +150,13 @@ function normalizeUploadedProfile(profile) {
     seasonalRewards: {
       completed: Number.isFinite(profile.seasonalRewards?.completed) ? profile.seasonalRewards.completed : null,
       total: Number.isFinite(profile.seasonalRewards?.total) ? profile.seasonalRewards.total : null
-    }
+    },
+    Quests: summarizeQuests(profile.Quests || profile.quests),
+    Hideout: summarizeHideout(profile.Hideout || profile.hideout),
+    Inventory: { items: Array.isArray(inventoryItems) ? new Array(inventoryItems.length).fill(0) : [] },
+    Encyclopedia: encyclopedia && typeof encyclopedia === 'object' && !Array.isArray(encyclopedia)
+      ? Object.fromEntries(Object.keys(encyclopedia).map((key) => [key, true]))
+      : undefined
   };
 }
 
@@ -144,9 +181,23 @@ function renderHub(profiles) {
         <div><span>Scav K/D</span><strong>${formatPlayerRatio(scav.kills, scav.deaths)}</strong></div>
         <div><span>Scav survival</span><strong>${Math.round((scav.survived / Math.max(1, scav.sessions)) * 100)}%</strong></div>
       </div>
-      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span></div>`;
-    return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
+      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span><span>${profile.quests?.completed || 0}/${profile.quests?.total || 0} quests complete / ${profile.hideout?.areasBuilt || 0} hideout areas (lv ${profile.hideout?.totalLevels || 0}) / ${profile.inventoryItemCount || 0} stash items / ${profile.encyclopediaCount || 0} items identified</span></div>`;
+    const level = profile.level == null ? '' : `LVL ${profile.level} / `;
+    return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${level}${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
   }).join('');
+}
+
+function renderOwnOperatorProfile(profile) {
+  document.querySelector('#stat-level').textContent = profile.level == null ? '—' : formatNumber(profile.level);
+  document.querySelector('#stat-quests').textContent = formatNumber(profile.quests?.completed || 0);
+  document.querySelector('#stat-objectives').textContent = formatNumber(profile.quests?.started || 0);
+  document.querySelector('#stat-modules').textContent = formatNumber(profile.hideout?.areasBuilt || 0);
+  document.querySelector('#stat-hideout-parts').textContent = formatNumber(profile.hideout?.totalLevels || 0);
+  document.querySelector('#stat-faction').textContent = profile.side || '—';
+  document.querySelector('#stat-edition').textContent = '—';
+  document.querySelector('#stat-mode').textContent = 'JSON IMPORT';
+  if (currentUser) document.querySelector('#profile-name').textContent = currentUser.username;
+  document.querySelector('#record-data-source').textContent = `Uploaded player JSON // ${new Date(profile.uploadedAt * 1000).toLocaleString()}`;
 }
 
 async function loadHub() {
@@ -154,7 +205,12 @@ async function loadHub() {
     const response = await fetch('/api/hub/profiles', { headers: { Accept: 'application/json' }, cache: 'no-store' });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Could not load the player hub.');
-    renderHub(result.profiles || []);
+    const profiles = result.profiles || [];
+    renderHub(profiles);
+    if (!trackerConnected) {
+      const ownProfile = profiles.find((profile) => profile.userId === currentUser?.id);
+      if (ownProfile) renderOwnOperatorProfile(ownProfile);
+    }
   } catch (error) {
     hubList.innerHTML = `<p class="tracker-empty">${escapeHtml(error.message)}</p>`;
   }
@@ -201,6 +257,7 @@ function setTrackerApiStatus(message, state = '') {
 }
 
 function setProgressPlaceholders() {
+  trackerConnected = false;
   for (const id of ['stat-level', 'stat-quests', 'stat-objectives', 'stat-modules', 'stat-hideout-parts', 'stat-faction', 'stat-edition', 'stat-mode']) {
     document.querySelector(`#${id}`).textContent = '—';
   }
@@ -209,6 +266,7 @@ function setProgressPlaceholders() {
 }
 
 function renderTrackerProgress(result) {
+  trackerConnected = true;
   const profile = result.profile;
   const completed = (entries) => entries.filter((entry) => entry.complete).length;
   const objectives = completed(profile.taskObjectivesProgress || []);
@@ -679,7 +737,7 @@ async function startApp() {
       ? new Date(user.created_at * 1000).toLocaleDateString()
       : '—';
     document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
-    loadTrackerConnection();
+    await loadTrackerConnection();
     loadHub();
     loadCatalog();
   } catch (error) {

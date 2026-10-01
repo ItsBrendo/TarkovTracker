@@ -1,0 +1,12 @@
+ALTER TABLE player_profiles ADD COLUMN level INTEGER;
+ALTER TABLE player_profiles ADD COLUMN registration_date INTEGER;
+ALTER TABLE player_profiles ADD COLUMN quests_completed INTEGER;
+ALTER TABLE player_profiles ADD COLUMN quests_started INTEGER;
+ALTER TABLE player_profiles ADD COLUMN quests_failed INTEGER;
+ALTER TABLE player_profiles ADD COLUMN quests_total INTEGER;
+ALTER TABLE player_profiles ADD COLUMN hideout_areas_built INTEGER;
+ALTER TABLE player_profiles ADD COLUMN hideout_max_level INTEGER;
+ALTER TABLE player_profiles ADD COLUMN hideout_total_levels INTEGER;
+ALTER TABLE player_profiles ADD COLUMN inventory_item_count INTEGER;
+ALTER TABLE player_profiles ADD COLUMN encyclopedia_count INTEGER;
+ALTER TABLE player_profiles ADD COLUMN last_reminder_at INTEGER;

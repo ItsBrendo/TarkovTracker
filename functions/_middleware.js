@@ -6,7 +6,7 @@ const LOGIN_ASSETS = new Set([
 
 export async function onRequest(context) {
   const { pathname } = new URL(context.request.url);
-  if (LOGIN_ASSETS.has(pathname) || pathname.startsWith('/api/auth/')) return context.next();
+  if (LOGIN_ASSETS.has(pathname) || pathname.startsWith('/api/auth/') || pathname === '/api/notify/due') return context.next();
 
   let user;
   try {
