@@ -179,6 +179,7 @@ h1 { margin-bottom: 2px; font-size: clamp(42px, 6vw, 68px); line-height: 0.97; t
 .operator-stat strong { color: var(--ink); font-family: "Barlow Condensed", Impact, sans-serif; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
 .operator-stat-note { color: var(--faint); font-size: 8px; }
 .profile-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 13px; padding-bottom: 20px; }
+.profile-panel-wide { grid-column: 1 / -1; }
 .profile-panel, .settings-panel { min-width: 0; padding: 19px 19px 16px; border: 1px solid var(--line-strong); background: rgba(15, 20, 20, 0.89); backdrop-filter: blur(7px); }
 .profile-panel .panel-heading, .settings-panel .panel-heading { align-items: center; padding-bottom: 13px; }
 .profile-panel .panel-heading h2, .settings-panel .panel-heading h2 { font-size: 23px; }

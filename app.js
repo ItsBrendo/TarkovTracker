@@ -1,5 +1,4 @@
 const TRACKER_STORAGE_KEY = 'tarkov-field-log.tracker.v1';
-const DAILY_STORAGE_KEY = 'tarkov-field-log.selection.v1';
 const TRACKING_ENABLED = false;
 const TRACKER_API_ENABLED = false;
 
@@ -35,8 +34,10 @@ let currentItem = null;
 let catalogGeneratedAt = '';
 let gameData = null;
 let currentUser = null;
-let trackerConnected = false;
+let jsonProfileLoaded = false;
 let trackerData = readTrackerData();
+let dailyState = { date: null, itemId: null, updatedAt: null };
+let dailyPollTimer = null;
 
 const TRACKED_STATS = [
   { key: 'found', label: 'Times found' },
@@ -99,14 +100,40 @@ function countPlayerCounters(stats) {
 
 function summarizeQuests(value) {
   const quests = Array.isArray(value) ? value : [];
-  const summary = { completed: 0, started: 0, failed: 0, total: quests.length };
+  const summary = { completed: 0, started: 0, failed: 0, available: 0, total: quests.length };
   for (const quest of quests) {
     const status = String(quest?.status || '').toLowerCase();
     if (status === 'success') summary.completed += 1;
     else if (status === 'fail' || status === 'failed') summary.failed += 1;
     else if (status === 'started') summary.started += 1;
+    else if (status === 'availableforstart') summary.available += 1;
   }
   return summary;
+}
+
+function summarizeHealth(value) {
+  return {
+    energy: Number.isFinite(value?.Energy?.Current) ? Math.round(value.Energy.Current) : null,
+    hydration: Number.isFinite(value?.Hydration?.Current) ? Math.round(value.Hydration.Current) : null
+  };
+}
+
+function summarizeTraders(value) {
+  const traders = value && typeof value === 'object' ? Object.values(value) : [];
+  let unlocked = 0;
+  let standingSum = 0;
+  let standingCount = 0;
+  for (const trader of traders) {
+    if (trader?.unlocked) unlocked += 1;
+    if (Number.isFinite(trader?.standing)) { standingSum += trader.standing; standingCount += 1; }
+  }
+  return { unlocked, averageStanding: standingCount ? Math.round((standingSum / standingCount) * 100) / 100 : null };
+}
+
+function countOf(value) {
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object') return Object.keys(value).length;
+  return 0;
 }
 
 function summarizeHideout(value) {
@@ -156,7 +183,12 @@ function normalizeUploadedProfile(profile) {
     Inventory: { items: Array.isArray(inventoryItems) ? new Array(inventoryItems.length).fill(0) : [] },
     Encyclopedia: encyclopedia && typeof encyclopedia === 'object' && !Array.isArray(encyclopedia)
       ? Object.fromEntries(Object.keys(encyclopedia).map((key) => [key, true]))
-      : undefined
+      : undefined,
+    Health: summarizeHealth(profile.Health || profile.health),
+    TradersInfo: summarizeTraders(profile.TradersInfo || profile.traders),
+    InsuredItems: new Array(countOf(profile.InsuredItems || profile.insuredItems)).fill(0),
+    WishList: new Array(countOf(profile.WishList || profile.wishlist)).fill(0),
+    Notes: new Array(countOf((profile.Notes || profile.notes)?.Notes || profile.Notes || profile.notes)).fill(0)
   };
 }
 
@@ -181,13 +213,14 @@ function renderHub(profiles) {
         <div><span>Scav K/D</span><strong>${formatPlayerRatio(scav.kills, scav.deaths)}</strong></div>
         <div><span>Scav survival</span><strong>${Math.round((scav.survived / Math.max(1, scav.sessions)) * 100)}%</strong></div>
       </div>
-      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span><span>${profile.quests?.completed || 0}/${profile.quests?.total || 0} quests complete / ${profile.hideout?.areasBuilt || 0} hideout areas (lv ${profile.hideout?.totalLevels || 0}) / ${profile.inventoryItemCount || 0} stash items / ${profile.encyclopediaCount || 0} items identified</span></div>`;
+      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span><span>${profile.quests?.completed || 0}/${profile.quests?.total || 0} quests complete (${profile.quests?.available || 0} available) / ${profile.hideout?.areasBuilt || 0} hideout areas (lv ${profile.hideout?.totalLevels || 0}) / ${profile.inventoryItemCount || 0} stash items / ${profile.encyclopediaCount || 0} items identified</span><span>${profile.traders?.unlocked || 0} traders unlocked (avg standing ${profile.traders?.averageStanding ?? '—'}) / ${profile.insuredItemsCount || 0} insured items / ${profile.wishlistCount || 0} wishlist / ${profile.notesCount || 0} notes / Energy ${profile.health?.energy ?? '—'} / Hydration ${profile.health?.hydration ?? '—'}</span></div>`;
     const level = profile.level == null ? '' : `LVL ${profile.level} / `;
     return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${level}${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
   }).join('');
 }
 
 function renderOwnOperatorProfile(profile) {
+  jsonProfileLoaded = true;
   document.querySelector('#stat-level').textContent = profile.level == null ? '—' : formatNumber(profile.level);
   document.querySelector('#stat-quests').textContent = formatNumber(profile.quests?.completed || 0);
   document.querySelector('#stat-objectives').textContent = formatNumber(profile.quests?.started || 0);
@@ -198,7 +231,28 @@ function renderOwnOperatorProfile(profile) {
   document.querySelector('#stat-mode').textContent = 'JSON IMPORT';
   if (currentUser) document.querySelector('#profile-name').textContent = currentUser.username;
   document.querySelector('#record-data-source').textContent = `Uploaded player JSON // ${new Date(profile.uploadedAt * 1000).toLocaleString()}`;
+
+  const detailTargets = {
+    'json-quests-available': profile.quests?.available,
+    'json-quests-failed': profile.quests?.failed,
+    'json-stash-items': profile.inventoryItemCount,
+    'json-encyclopedia': profile.encyclopediaCount,
+    'json-energy': profile.health?.energy,
+    'json-hydration': profile.health?.hydration,
+    'json-traders-unlocked': profile.traders?.unlocked,
+    'json-traders-standing': profile.traders?.averageStanding,
+    'json-insured-items': profile.insuredItemsCount,
+    'json-wishlist': profile.wishlistCount,
+    'json-notes': profile.notesCount,
+    'json-achievements': profile.achievementsCount,
+    'json-prestige': profile.prestigeLevel
+  };
+  for (const [id, value] of Object.entries(detailTargets)) {
+    const target = document.querySelector(`#${id}`);
+    if (target) target.textContent = value == null ? '—' : formatNumber(value);
+  }
 }
+
 
 async function loadHub() {
   try {
@@ -207,13 +261,17 @@ async function loadHub() {
     if (!response.ok) throw new Error(result.error || 'Could not load the player hub.');
     const profiles = result.profiles || [];
     renderHub(profiles);
-    if (!trackerConnected) {
-      const ownProfile = profiles.find((profile) => profile.userId === currentUser?.id);
-      if (ownProfile) renderOwnOperatorProfile(ownProfile);
-    }
+    const ownProfile = profiles.find((profile) => profile.userId === currentUser?.id);
+    if (ownProfile) renderOwnOperatorProfile(ownProfile);
   } catch (error) {
     hubList.innerHTML = `<p class="tracker-empty">${escapeHtml(error.message)}</p>`;
   }
+}
+
+let hubPollTimer = null;
+function startHubPolling() {
+  if (hubPollTimer) return;
+  hubPollTimer = setInterval(loadHub, 20000);
 }
 
 function renderProfile() {
@@ -257,7 +315,7 @@ function setTrackerApiStatus(message, state = '') {
 }
 
 function setProgressPlaceholders() {
-  trackerConnected = false;
+  if (jsonProfileLoaded) return;
   for (const id of ['stat-level', 'stat-quests', 'stat-objectives', 'stat-modules', 'stat-hideout-parts', 'stat-faction', 'stat-edition', 'stat-mode']) {
     document.querySelector(`#${id}`).textContent = '—';
   }
@@ -266,7 +324,7 @@ function setProgressPlaceholders() {
 }
 
 function renderTrackerProgress(result) {
-  trackerConnected = true;
+  if (jsonProfileLoaded) { setTrackerApiStatus(`Progress synced ${new Date(result.fetchedAt * 1000).toLocaleString()}.`, 'connected'); return; }
   const profile = result.profile;
   const completed = (entries) => entries.filter((entry) => entry.complete).length;
   const objectives = completed(profile.taskObjectivesProgress || []);
@@ -400,28 +458,48 @@ function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function selectDailyItem(items) {
-  const today = getTodayKey();
-  try {
-    const saved = JSON.parse(localStorage.getItem(DAILY_STORAGE_KEY) || '{}');
-    if (saved.date === today && items.some((item) => item.id === saved.id)) {
-      return items.find((item) => item.id === saved.id);
-    }
-  } catch {
-    // A fresh random item is still usable when browser storage is unavailable.
+function hashStringToInt(value) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
   }
+  return hash;
+}
 
-  const item = items[Math.floor(Math.random() * items.length)];
-  saveDailySelection(item, today);
+// Same formula on every browser, so an unmodified day picks the same item for the whole crew.
+function deterministicDailyItem(items, dateKey) {
+  return items[hashStringToInt(dateKey) % items.length];
+}
+
+async function fetchDailyState() {
+  try {
+    const response = await fetch('/api/daily/item', { headers: { Accept: 'application/json' }, cache: 'no-store' });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// Resolves the crew-wide item: a manual reroll (stored server-side) wins, otherwise everyone
+// falls back to the same date-seeded choice without needing a server write.
+async function resolveDailyItem() {
+  const today = getTodayKey();
+  const server = await fetchDailyState();
+  const item = (server?.date === today && catalog.some((entry) => entry.id === server.itemId))
+    ? catalog.find((entry) => entry.id === server.itemId)
+    : deterministicDailyItem(catalog, today);
+  dailyState = { date: today, itemId: item.id, updatedAt: server?.updatedAt ?? dailyState.updatedAt };
   return item;
 }
 
-function saveDailySelection(item, date = getTodayKey()) {
-  try {
-    localStorage.setItem(DAILY_STORAGE_KEY, JSON.stringify({ date, id: item.id }));
-  } catch {
-    // Selection remains available for the current page session.
-  }
+function startDailyItemPolling() {
+  if (dailyPollTimer) return;
+  dailyPollTimer = setInterval(async () => {
+    if (!catalog.length) return;
+    const item = await resolveDailyItem();
+    if (item.id !== currentItem?.id) renderCurrentItem(item);
+  }, 5000);
 }
 
 async function fetchItems() {
@@ -593,18 +671,32 @@ async function loadCatalog() {
         : 'The published catalog contains no selectable items.');
     }
     catalog = items;
-    renderCurrentItem(selectDailyItem(catalog));
+    renderCurrentItem(await resolveDailyItem());
+    startDailyItemPolling();
   } catch (error) {
     showLoadError(error instanceof Error ? error : new Error('An unexpected item feed error occurred.'));
   }
 }
 
-rerollButton.addEventListener('click', () => {
+rerollButton.addEventListener('click', async () => {
   if (catalog.length < 2) return;
   const alternatives = catalog.filter((item) => item.id !== currentItem?.id);
   const item = alternatives[Math.floor(Math.random() * alternatives.length)];
-  saveDailySelection(item);
-  renderCurrentItem(item);
+  rerollButton.disabled = true;
+  try {
+    const response = await fetch('/api/daily/item', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ itemId: item.id })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Could not share the new item with the crew.');
+    dailyState = { date: result.date, itemId: result.itemId, updatedAt: result.updatedAt };
+    renderCurrentItem(item);
+  } catch (error) {
+    setStatus(error.message, 'error');
+  } finally {
+    rerollButton.disabled = catalog.length < 2;
+  }
 });
 
 trackerRegion.addEventListener('click', (event) => {
@@ -737,9 +829,10 @@ async function startApp() {
       ? new Date(user.created_at * 1000).toLocaleDateString()
       : '—';
     document.querySelector('#admin-menu-button').hidden = user.role !== 'admin';
-    await loadTrackerConnection();
-    loadHub();
+    await loadHub();
+    loadTrackerConnection();
     loadCatalog();
+    startHubPolling();
   } catch (error) {
     showLoadError(error instanceof Error ? error : new Error('The authentication service is unavailable.'));
     setStatus('AUTHENTICATION SERVICE UNAVAILABLE', 'error');

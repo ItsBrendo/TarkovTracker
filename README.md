@@ -72,9 +72,13 @@ The API token previously pasted into chat should be revoked and replaced before 
 
 ## Player JSON upload and the Operator profile
 
-Uploading a player export in **Settings → Upload player JSON** extracts a bounded summary — PMC/scav counters, skills, mastery, achievements, battle pass, seasonal rewards, player level, registration date, quest completion counts, hideout area/level counts, stash item count, and encyclopedia (identified item) count — before sending it to the private hub. The original file never leaves the browser.
+Uploading a player export in **Settings → Upload player JSON** extracts a bounded summary before sending it to the private hub: PMC/scav counters, skills, mastery, achievements, battle pass, seasonal rewards, player level, registration date, quest completion/available/failed counts, hideout area/level counts, stash item count, encyclopedia (identified item) count, energy/hydration, trader unlock count and average standing, insured item count, wishlist count, and notes count. The original file never leaves the browser — only these counts and summaries are sent.
 
-The **Operator profile** tab shows these uploaded stats (player level, quests complete, hideout areas/levels, faction, upload time) whenever TarkovTracker API progress isn't connected, since the JSON upload is the active data source. Connecting a live TarkovTracker API token still takes priority when available.
+The **Operator profile** tab always prefers this uploaded JSON data first: if a player has uploaded a profile, its stats (player level, quests, hideout, faction, and the full "Field report detail" panel) are shown and take priority. The TarkovTracker API connection is only used to fill the operator profile when no JSON profile has been uploaded for that account; it remains available as a fallback.
+
+## Shared daily item
+
+The Daily item tab is synchronized for the whole crew instead of being randomized per browser. Every browser deterministically picks the same item for a given date (a seeded hash of the date), so everyone sees the same default without any server coordination. Clicking **New item** writes the chosen item to D1 via `PUT /api/daily/item`, which overrides the deterministic pick for the rest of that day for everyone. All signed-in browsers poll `GET /api/daily/item` every 5 seconds and the player hub every 20 seconds, so a reroll (or a new upload) appears on other screens within that window without a page reload.
 
 ## Discord notifications
 
