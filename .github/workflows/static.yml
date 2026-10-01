@@ -74,8 +74,8 @@ jobs:
               maps: (($maps[0].data.maps // $maps[0].data) | length),
               traders: (($traders[0].data.traders // $traders[0].data) | length),
               hideoutAreas: (($hideout[0].data.hideout // $hideout[0].data) | length),
-              crafts: (($crafts[0].data.crafts // $crafts[0].data) | length),
-              barters: (($barters[0].data.barters // $barters[0].data) | length)
+              crafts: ($crafts[0].data | length),
+              barters: ($barters[0].data | length)
             }' > game-data.json
           rm api-response.json tasks.json maps.json traders.json hideout.json crafts.json barters.json
       - name: Apply D1 migrations and deploy Pages
