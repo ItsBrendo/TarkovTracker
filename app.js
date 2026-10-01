@@ -98,72 +98,19 @@ function countPlayerCounters(stats) {
   return result;
 }
 
-function summarizeQuests(value) {
-  const quests = Array.isArray(value) ? value : [];
-  const summary = { completed: 0, started: 0, failed: 0, available: 0, total: quests.length };
-  for (const quest of quests) {
-    const status = String(quest?.status || '').toLowerCase();
-    if (status === 'success') summary.completed += 1;
-    else if (status === 'fail' || status === 'failed') summary.failed += 1;
-    else if (status === 'started') summary.started += 1;
-    else if (status === 'availableforstart') summary.available += 1;
-  }
-  return summary;
-}
-
-function summarizeHealth(value) {
-  return {
-    energy: Number.isFinite(value?.Energy?.Current) ? Math.round(value.Energy.Current) : null,
-    hydration: Number.isFinite(value?.Hydration?.Current) ? Math.round(value.Hydration.Current) : null
-  };
-}
-
-function summarizeTraders(value) {
-  const traders = value && typeof value === 'object' ? Object.values(value) : [];
-  let unlocked = 0;
-  let standingSum = 0;
-  let standingCount = 0;
-  for (const trader of traders) {
-    if (trader?.unlocked) unlocked += 1;
-    if (Number.isFinite(trader?.standing)) { standingSum += trader.standing; standingCount += 1; }
-  }
-  return { unlocked, averageStanding: standingCount ? Math.round((standingSum / standingCount) * 100) / 100 : null };
-}
-
-function countOf(value) {
-  if (Array.isArray(value)) return value.length;
-  if (value && typeof value === 'object') return Object.keys(value).length;
-  return 0;
-}
-
-function summarizeHideout(value) {
-  const areas = Array.isArray(value?.Areas) ? value.Areas : [];
-  let maxLevel = 0;
-  let totalLevels = 0;
-  let built = 0;
-  for (const area of areas) {
-    const level = Math.max(0, Number(area?.level) || 0);
-    if (level > 0) built += 1;
-    if (level > maxLevel) maxLevel = level;
-    totalLevels += level;
-  }
-  return { areasBuilt: built, maxLevel, totalLevels };
-}
-
 function normalizeUploadedProfile(profile) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile) || !profile.info?.nickname) return null;
   const list = (value, fields) => Array.isArray(value) ? value.slice(0, 100).map((entry) => Object.fromEntries(fields
     .filter((field) => typeof entry?.[field] === 'string' || Number.isFinite(entry?.[field]))
     .map((field) => [field, entry[field]]))) : [];
-  const inventoryItems = (profile.Inventory || profile.inventory)?.items;
-  const encyclopedia = profile.Encyclopedia || profile.encyclopedia;
   return {
     info: {
-      nickname: String(profile.info.nickname).slice(0, 32), side: String(profile.info.side || '').slice(0, 16),
-      level: Number.isFinite(profile.info.level) ? profile.info.level : null,
+      nickname: String(profile.info.nickname).slice(0, 32),
+      side: String(profile.info.side || '').slice(0, 16),
       experience: Number.isFinite(profile.info.experience) ? profile.info.experience : null,
-      prestigeLevel: Number.isFinite(profile.info.prestigeLevel) ? profile.info.prestigeLevel : null,
-      registrationDate: Number.isFinite(profile.info.registrationDate) ? profile.info.registrationDate : null
+      memberCategory: Number.isFinite(profile.info.memberCategory) ? profile.info.memberCategory : null,
+      selectedMemberCategory: Number.isFinite(profile.info.selectedMemberCategory) ? profile.info.selectedMemberCategory : null,
+      prestigeLevel: Number.isFinite(profile.info.prestigeLevel) ? profile.info.prestigeLevel : null
     },
     aid: Number.isFinite(profile.aid) ? profile.aid : null,
     pmcStats: countPlayerCounters(profile.pmcStats),
@@ -177,18 +124,7 @@ function normalizeUploadedProfile(profile) {
     seasonalRewards: {
       completed: Number.isFinite(profile.seasonalRewards?.completed) ? profile.seasonalRewards.completed : null,
       total: Number.isFinite(profile.seasonalRewards?.total) ? profile.seasonalRewards.total : null
-    },
-    Quests: summarizeQuests(profile.Quests || profile.quests),
-    Hideout: summarizeHideout(profile.Hideout || profile.hideout),
-    Inventory: { items: Array.isArray(inventoryItems) ? new Array(inventoryItems.length).fill(0) : [] },
-    Encyclopedia: encyclopedia && typeof encyclopedia === 'object' && !Array.isArray(encyclopedia)
-      ? Object.fromEntries(Object.keys(encyclopedia).map((key) => [key, true]))
-      : undefined,
-    Health: summarizeHealth(profile.Health || profile.health),
-    TradersInfo: summarizeTraders(profile.TradersInfo || profile.traders),
-    InsuredItems: new Array(countOf(profile.InsuredItems || profile.insuredItems)).fill(0),
-    WishList: new Array(countOf(profile.WishList || profile.wishlist)).fill(0),
-    Notes: new Array(countOf((profile.Notes || profile.notes)?.Notes || profile.Notes || profile.notes)).fill(0)
+    }
   };
 }
 
@@ -205,6 +141,7 @@ function renderHub(profiles) {
   hubList.innerHTML = profiles.map((profile) => {
     const pmc = profile.pmc || {};
     const scav = profile.scav || {};
+    const battlePass = profile.battlePass?.[0];
     const uploaded = profile.uploadedAt ? new Date(profile.uploadedAt * 1000).toLocaleString() : 'Unknown';
     const detail = `
       <div class="hub-detail-grid">
@@ -213,39 +150,37 @@ function renderHub(profiles) {
         <div><span>Scav K/D</span><strong>${formatPlayerRatio(scav.kills, scav.deaths)}</strong></div>
         <div><span>Scav survival</span><strong>${Math.round((scav.survived / Math.max(1, scav.sessions)) * 100)}%</strong></div>
       </div>
-      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span><span>${profile.quests?.completed || 0}/${profile.quests?.total || 0} quests complete (${profile.quests?.available || 0} available) / ${profile.hideout?.areasBuilt || 0} hideout areas (lv ${profile.hideout?.totalLevels || 0}) / ${profile.inventoryItemCount || 0} stash items / ${profile.encyclopediaCount || 0} items identified</span><span>${profile.traders?.unlocked || 0} traders unlocked (avg standing ${profile.traders?.averageStanding ?? '—'}) / ${profile.insuredItemsCount || 0} insured items / ${profile.wishlistCount || 0} wishlist / ${profile.notesCount || 0} notes / Energy ${profile.health?.energy ?? '—'} / Hydration ${profile.health?.hydration ?? '—'}</span></div>`;
-    const level = profile.level == null ? '' : `LVL ${profile.level} / `;
-    return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${level}${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
+      <div class="hub-detail-lines"><span>PMC: ${pmc.kills || 0} kills / ${pmc.deaths || 0} deaths / ${pmc.killedPmc || 0} PMC kills</span><span>Scav: ${scav.kills || 0} kills / ${scav.deaths || 0} deaths / ${scav.killedPmc || 0} PMC kills</span><span>${profile.skills?.length || 0} skills / ${profile.mastering?.length || 0} mastery records / ${profile.achievementsCount || 0} achievements</span><span>${battlePass ? `${battlePass.completed || 0}/${battlePass.total || 0} battle pass` : 'No battle pass data'} / ${profile.seasonalRewards?.completed || 0}/${profile.seasonalRewards?.total || 0} seasonal rewards</span></div>`;
+    const prestige = profile.prestigeLevel ? `Prestige ${profile.prestigeLevel} / ` : '';
+    return `<details class="hub-player"><summary><span class="hub-player-avatar">${escapeHtml(profile.displayName.slice(0, 2).toUpperCase())}</span><span class="hub-player-main"><strong>${escapeHtml(profile.displayName)}</strong><small>${prestige}${escapeHtml(profile.side || 'Unknown side')} / ${profile.experience == null ? 'XP unknown' : `${formatNumber(profile.experience)} XP`}</small></span><span class="hub-player-meta"><b>${pmc.kills || 0}</b> PMC kills<small>Uploaded ${escapeHtml(uploaded)}</small></span></summary>${detail}</details>`;
   }).join('');
 }
 
 function renderOwnOperatorProfile(profile) {
   jsonProfileLoaded = true;
-  document.querySelector('#stat-level').textContent = profile.level == null ? '—' : formatNumber(profile.level);
-  document.querySelector('#stat-quests').textContent = formatNumber(profile.quests?.completed || 0);
-  document.querySelector('#stat-objectives').textContent = formatNumber(profile.quests?.started || 0);
-  document.querySelector('#stat-modules').textContent = formatNumber(profile.hideout?.areasBuilt || 0);
-  document.querySelector('#stat-hideout-parts').textContent = formatNumber(profile.hideout?.totalLevels || 0);
+  document.querySelector('#stat-level').textContent = '—';
+  document.querySelector('#stat-quests').textContent = '—';
+  document.querySelector('#stat-objectives').textContent = '—';
+  document.querySelector('#stat-modules').textContent = '—';
+  document.querySelector('#stat-hideout-parts').textContent = '—';
   document.querySelector('#stat-faction').textContent = profile.side || '—';
   document.querySelector('#stat-edition').textContent = '—';
   document.querySelector('#stat-mode').textContent = 'JSON IMPORT';
   if (currentUser) document.querySelector('#profile-name').textContent = currentUser.username;
   document.querySelector('#record-data-source').textContent = `Uploaded player JSON // ${new Date(profile.uploadedAt * 1000).toLocaleString()}`;
 
+  const battlePass = profile.battlePass?.[0];
   const detailTargets = {
-    'json-quests-available': profile.quests?.available,
-    'json-quests-failed': profile.quests?.failed,
-    'json-stash-items': profile.inventoryItemCount,
-    'json-encyclopedia': profile.encyclopediaCount,
-    'json-energy': profile.health?.energy,
-    'json-hydration': profile.health?.hydration,
-    'json-traders-unlocked': profile.traders?.unlocked,
-    'json-traders-standing': profile.traders?.averageStanding,
-    'json-insured-items': profile.insuredItemsCount,
-    'json-wishlist': profile.wishlistCount,
-    'json-notes': profile.notesCount,
+    'json-member-category': profile.memberCategory,
+    'json-selected-member-category': profile.selectedMemberCategory,
+    'json-prestige': profile.prestigeLevel,
     'json-achievements': profile.achievementsCount,
-    'json-prestige': profile.prestigeLevel
+    'json-skills-count': profile.skills?.length,
+    'json-mastery-count': profile.mastering?.length,
+    'json-battlepass-completed': battlePass?.completed,
+    'json-battlepass-total': battlePass?.total,
+    'json-seasonal-completed': profile.seasonalRewards?.completed,
+    'json-seasonal-total': profile.seasonalRewards?.total
   };
   for (const [id, value] of Object.entries(detailTargets)) {
     const target = document.querySelector(`#${id}`);

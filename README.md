@@ -72,9 +72,9 @@ The API token previously pasted into chat should be revoked and replaced before 
 
 ## Player JSON upload and the Operator profile
 
-Uploading a player export in **Settings → Upload player JSON** extracts a bounded summary before sending it to the private hub: PMC/scav counters, skills, mastery, achievements, battle pass, seasonal rewards, player level, registration date, quest completion/available/failed counts, hideout area/level counts, stash item count, encyclopedia (identified item) count, energy/hydration, trader unlock count and average standing, insured item count, wishlist count, and notes count. The original file never leaves the browser — only these counts and summaries are sent.
+Uploading a player export in **Settings → Upload player JSON** extracts a bounded summary before sending it to the private hub: nickname, side (faction), experience, member category / selected member category, prestige level, PMC/scav session counters (sessions, survived, kills, deaths, PMC kills) from `pmcStats`/`scavStats`, skills and mastery records, an achievements count (tallied from the `achievements` object), battle pass progress, and seasonal rewards progress. The original file never leaves the browser — only this bounded summary is sent. Other fields sometimes present in an export (hideout, inventory, quests, encyclopedia, etc.) are not included in this format and are not extracted.
 
-The **Operator profile** tab always prefers this uploaded JSON data first: if a player has uploaded a profile, its stats (player level, quests, hideout, faction, and the full "Field report detail" panel) are shown and take priority. The TarkovTracker API connection is only used to fill the operator profile when no JSON profile has been uploaded for that account; it remains available as a fallback.
+The **Operator profile** tab always prefers this uploaded JSON data first: if a player has uploaded a profile, its stats (faction, prestige, achievements, skills/mastery counts, battle pass, and seasonal rewards in the "Field report detail" panel) are shown and take priority. The TarkovTracker API connection is only used to fill the operator profile when no JSON profile has been uploaded for that account; it remains available as a fallback.
 
 ## Shared daily item
 
